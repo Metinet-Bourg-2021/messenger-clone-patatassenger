@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const messageSchema = mongoose.Schema({
     from: 
     {
-        type: [mongoose.Schema.Types.User],//TODO: a verifier aussi
+        type: String,
         require: true
     },
     content:
@@ -17,11 +17,11 @@ const messageSchema = mongoose.Schema({
     },
     conversation_id: //a qui et quand ils l'ont vu ?
     {
-        type: mongoose.Schema.Types.ObjectId //TODO: a verifier là aussi
+        type: mongoose.Types.ObjectId //TODO: a verifier là aussi
     },
     reply_to:
     {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Types.ObjectId,
         default: null
     },
     edited:
@@ -40,4 +40,4 @@ const messageSchema = mongoose.Schema({
     }
 }, { minimize: false });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model('MessageSchema', messageSchema);

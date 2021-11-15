@@ -13,11 +13,12 @@ const conversationSchema = mongoose.Schema({
     },
     participants:
     {
-        type: [mongoose.Schema.Types.User] //TODO A verifier
+        type: [mongoose.Types.ObjectId], //TODO A verifier
+        require: true
     },
     messages:
     {
-        type: [mongoose.Schema.Types.Message]
+        type: [mongoose.Types.ObjectId] //ne marche pas
     },
     theme: 
     {
@@ -29,12 +30,12 @@ const conversationSchema = mongoose.Schema({
     },
     seen:
     {
-        type: [mongoose.Schema.Types.User]
+        type: [mongoose.Types.ObjectId]
     },
     typing: 
     {
-        type: [mongoose.Schema.Types.User]
+        type: [mongoose.Types.ObjectId]
     }
 }, { minimize: false });
 
-module.exports = mongoose.model('Conversation', conversationSchema);
+module.exports = mongoose.model('ConversationSchema', conversationSchema);

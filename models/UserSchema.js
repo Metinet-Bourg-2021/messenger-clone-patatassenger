@@ -9,8 +9,8 @@ const userSchema = mongoose.Schema({
     },
     password:
     {
-            type: String,
-            required: true
+        type: String,
+        required: true
     },
     picture_url:
     {
@@ -25,4 +25,4 @@ const userSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('UserSchema', userSchema);
