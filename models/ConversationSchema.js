@@ -31,10 +31,6 @@ const conversationSchema = mongoose.Schema({
     seen:
     {
         type: [mongoose.Types.ObjectId]
-    },
-    typing: 
-    {
-        type: [mongoose.Types.ObjectId]
     }
 }, { minimize: false });
 

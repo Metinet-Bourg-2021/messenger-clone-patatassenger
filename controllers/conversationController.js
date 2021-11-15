@@ -12,8 +12,13 @@ function getConversations({ token }, callback) {
     callback({code:"SUCCESS", data:{}});
 }
 
+function seeConversation({ token, conversation_id, message_id }, callback) {
+    callback({code:"SUCCESS", data:{}});
+}
+
 module.exports = {
     getOrCreateOneToOneConversation : getOrCreateOneToOneConversation,
     createManyToManyConversation : createManyToManyConversation,
+    seeConversation : seeConversation,
     getConversations : getConversations
 };
