@@ -13,12 +13,12 @@ const conversationSchema = mongoose.Schema({
     },
     participants:
     {
-        type: [mongoose.Types.ObjectId], //TODO A verifier
+        type: [mongoose.Types.ObjectId],
         require: true
     },
     messages:
     {
-        type: [mongoose.Types.ObjectId] //ne marche pas
+        type: [mongoose.Types.ObjectId]
     },
     theme: 
     {

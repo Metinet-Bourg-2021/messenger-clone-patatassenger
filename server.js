@@ -7,7 +7,7 @@ const { Server } = require("socket.io");
 const mongoose = require('mongoose');
 
 const io = new Server(server, { cors: { origin: "*" } });
-const controller = require("./controllers/controller");
+const controller = require("./controllers/userController");
 const allSockets = [];
 
 mongoose.connect(process.env.DB_ADRESS);
