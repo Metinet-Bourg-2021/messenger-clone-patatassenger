@@ -17,7 +17,8 @@ const messageSchema = mongoose.Schema({
     },
     conversation_id:
     {
-        type: mongoose.Types.ObjectId
+        type: mongoose.Types.ObjectId,
+        require: true
     },
     reply_to:
     {

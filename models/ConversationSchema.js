@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const MessageSchema = require('./MessageSchema');
 
 const conversationSchema = mongoose.Schema({
     name:
@@ -29,10 +30,6 @@ const conversationSchema = mongoose.Schema({
         type: Date
     },
     seen:
-    {
-        type: [mongoose.Types.ObjectId]
-    },
-    typing: 
     {
         type: [mongoose.Types.ObjectId]
     }

@@ -7,10 +7,73 @@ const { Server } = require("socket.io");
 const mongoose = require('mongoose');
 
 const io = new Server(server, { cors: { origin: "*" } });
-const controller = require("./controllers/userController");
+const userController = require("./controllers/userController");
+const messageController = require("./controllers/messageController");
+const conversationController = require("./controllers/conversationController");
 const allSockets = [];
 
-mongoose.connect(process.env.DB_ADRESS);
+
+async function test(){
+
+const picture_url = require('./services/pictures');
+mongoose.connect(process.env.DB_ADDRESS);
+picture = picture_url.getRandomURL();
+
+const User = require('./models/UserSchema');
+    const userTest = new User({
+        username: "Admin",
+        password: "Admin123",
+        picture_url: picture,
+        last_activity_at: new Date()
+    });
+    /*userTest.save(function (err) {
+        if (err) {
+            console.log("Error while saving data: " + err);
+            return;
+        }
+    });*/
+
+    const allUsers = await User.find().exec();
+
+    const Conversation = require('./models/ConversationSchema');
+    const conversationTest = new Conversation({
+        name: "Ma nouvelle conversation",
+        type: "one_to_one",
+        participants: allUsers,
+        messages: null,
+        theme: "BLUE",
+        updated_at: new Date(),
+        seen: null
+    });
+    /*conversationTest.save(function (err) {
+        if (err) {
+            console.log("Error while saving data: " + err);
+            return;
+        }
+    });*/
+
+    const allConversations = await Conversation.find().exec();
+
+    const Message = require('./models/MessageSchema');
+    const messageTest = new Message({
+        from: userTest.username,
+        content: "Voici mon message",
+        posted_at: new Date(),
+        conversation_id: conversationTest._id
+    });
+    /*messageTest.save(function (err) {
+        if (err) {
+            console.log("Error while saving data: " + err);
+            return;
+        }
+    });*/
+
+    const allMessages = await Message.find().exec();
+
+}
+
+test();
+
 
 app.get("/", (req, res) => {
     res.send("A utiliser pour du debug si vous avez besoin...");

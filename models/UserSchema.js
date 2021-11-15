@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const userSchema = mongoose.Schema({
-    name:
+    username:
     {
         type: String,
         require: true,
@@ -15,10 +15,6 @@ const userSchema = mongoose.Schema({
     picture_url:
     {
         type: String
-    },
-    awake:
-    {
-        type: Boolean
     },
     last_activity_at: {
         type: Date

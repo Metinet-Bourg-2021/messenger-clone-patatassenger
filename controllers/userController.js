@@ -1,3 +1,4 @@
+require('dotenv/config');
 const picture_url = require('../services/pictures');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
@@ -26,16 +27,17 @@ function authenticate({ username, password }, callback) {
             const user = new UserSchema({
                 username: username,
                 password: hash,
-                picture: picture // TODO: user a enregistré selon le MODEL
+                picture_url: picture // TODO: user a enregistré selon le MODEL
             });
             user.save()
                 .then((savedUser) => console.log(savedUser))
                 .catch(error => console.log({ error: error }));
+            userFind = user;
         })
         .catch(error => res.status(500).json({ error: error }));
     }
 
-    let token = jsonwebtoken.sign({ data : 'secrettoken' }, 'patata', { expiresIn: '1h' });
+    let token = jsonwebtoken.sign({ data : process.env.SECRET_KEY }, userFind, { expiresIn: '1h' });
 
     return callback({
         code:"SUCCESS", 
