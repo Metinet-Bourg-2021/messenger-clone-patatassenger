@@ -305,7 +305,7 @@ La réponse attendue ne contient rien dans l'objet data, seulement le code de re
 
 #### 3.3.8 Répondre à un message *(2 pts*)
 
-La requête est du nom suivant: **editMessage**. 
+La requête est du nom suivant: **replyMessage**. 
 
 Le corps de la requête est comme suit: 
 
