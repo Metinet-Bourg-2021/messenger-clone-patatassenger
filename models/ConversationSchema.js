@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const MessageSchema = require('./MessageSchema');
 
 const conversationSchema = mongoose.Schema({
     name:
@@ -13,12 +14,13 @@ const conversationSchema = mongoose.Schema({
     },
     participants:
     {
-        type: [mongoose.Types.ObjectId], //TODO A verifier
+        type: [mongoose.Types.ObjectId],
         require: true
     },
     messages:
     {
-        type: [mongoose.Types.ObjectId] //ne marche pas
+        type: [MessageSchema],
+        default: []
     },
     theme: 
     {
@@ -29,10 +31,6 @@ const conversationSchema = mongoose.Schema({
         type: Date
     },
     seen:
-    {
-        type: [mongoose.Types.ObjectId]
-    },
-    typing: 
     {
         type: [mongoose.Types.ObjectId]
     }

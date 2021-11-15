@@ -1,7 +1,7 @@
 const picture_url = require('../services/pictures');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const UserSchema = require('./../models/UserSchema');
+const UserSchema = require('../models/UserSchema');
 
 function authenticate({ username, password }, callback) {
     let users = UserSchema.find();
@@ -31,11 +31,12 @@ function authenticate({ username, password }, callback) {
             user.save()
                 .then((savedUser) => console.log(savedUser))
                 .catch(error => console.log({ error: error }));
+            userFind=user;
         })
         .catch(error => res.status(500).json({ error: error }));
     }
 
-    let token = jsonwebtoken.sign({ data : 'secrettoken' }, 'patata', { expiresIn: '1h' });
+    let token = jsonwebtoken.sign({ data : process.env.SECRET_KEY }, userFind, { expiresIn: '1h' });
 
     return callback({
         code:"SUCCESS", 
@@ -63,52 +64,9 @@ function getUsers({token}, callback) { // liste des utilisateurs présents, toke
     }
 }
 
-function getOrCreateOneToOneConversation({ token, username }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function createManyToManyConversation({ token, usernames }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function getConversations({ token }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function postMessage({ token, conversation_id, content }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function seeConversation({ token, conversation_id, message_id }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function replyMessage({ token, conversation_id, message_id, content }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function editMessage({ token, conversation_id, message_id, content }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function reactMessage({ token, conversation_id, message_id, reaction }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
-
-function deleteMessage({ token, conversation_id, message_id, content }, callback) {
-    callback({code:"SUCCESS", data:{}});
-}
 
 module.exports = {
     authenticate : authenticate, 
     getUsers : getUsers,
-    getOrCreateOneToOneConversation : getOrCreateOneToOneConversation,
-    createManyToManyConversation : createManyToManyConversation,
-    getConversations : getConversations,
-    postMessage : postMessage,
-    seeConversation : seeConversation,
-    replyMessage : replyMessage,
-    editMessage : editMessage,
-    reactMessage : reactMessage,
-    deleteMessage : deleteMessage
+    postMessage : postMessage
 };
