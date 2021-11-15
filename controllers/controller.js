@@ -1,8 +1,7 @@
 const picture_url = require('../services/pictures');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const UserSchema = require('./../models/User');
-const mongoose = require('mongoose');
+const UserSchema = require('./../models/UserSchema');
 
 function authenticate({ username, password }, callback) {
     let users = UserSchema.find();
