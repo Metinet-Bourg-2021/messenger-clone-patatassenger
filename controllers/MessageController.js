@@ -25,7 +25,7 @@ function postMessage({token,conversation_id,content}, callback) {
     .then((savedMessage) => console.log(savedMessage))
     .catch(error => console.log({ error: error }));
     
-    callback({
+    return callback({
         code: "SUCCESS",
         data: {
             message: message
@@ -57,7 +57,7 @@ function replyMessage({token,conversation_id,message_id,content}, callback) {
     .then((savedMessage) => console.log(savedMessage))
     .catch(error => console.log({ error: error }));
 
-    callback({
+    return callback({
         code: "SUCCESS",
         data: {
             message: message
@@ -82,24 +82,36 @@ async function editMessage({token,conversation_id,message_id,content}, callback)
     });
 }
 
-function reactMessage({
-    token,
-    conversation_id,
-    message_id,
-    reaction
-}, callback) {
+function reactMessage({token,conversation_id,message_id,reaction}, callback) {
+    let user = tokenDecoder.decodeToken(token);
+    if(!user){
+        return callback({
+            code: "NOT_AUTHENTICATED",
+            data: {}
+        });
+    }
+
+    message = MessageSchema.findById(message_id);
+    message.reactions.push(reaction);
+    MessageSchema.findByIdAndUpdate({ id : { $eq: message_id}, conversation_id:{$eq:conversation_id}, {reactions:message.reactions}});
+
     callback({
         code: "SUCCESS",
         data: {}
     });
 }
 
-function deleteMessage({
-    token,
-    conversation_id,
-    message_id,
-    content
-}, callback) {
+function deleteMessage({token,conversation_id,message_id,content}, callback) {
+    let user = tokenDecoder.decodeToken(token);
+    if(!user){
+        return callback({
+            code: "NOT_AUTHENTICATED",
+            data: {}
+        });
+    }
+
+    MessageSchema.findByIdAndRemove({id : {$eq: message_id}, conversation_id:{$eq : conversation_id}, content:{$eq: content}});
+
     callback({
         code: "SUCCESS",
         data: {}
