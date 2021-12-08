@@ -2,22 +2,23 @@ require('dotenv/config');
 const picture_url = require('../services/pictures');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const UserSchema = require('../models/UserSchema');
+const UserSchema = require('../models/userSchema');
 
-function authenticate({ username, password }, callback) {
-    let users = UserSchema.find();
-    let userFind = users.find(user => user.username === username);
+async function authenticate({ username, password }, callback) {
+    let userFind = await UserSchema.find({username : username}).exec();
     let picture = '';
 
-    if (userFind) { // si on essaie de se connecter et que le username existe dans la BDD
-
-        if (!bcrypt.compare(userFind.password, password)) {
+    if (userFind.length !== 0) { // si on essaie de se connecter et que le username existe dans la BDD
+        userFind = userFind[0];
+        let checkPass = await bcrypt.compare(password, userFind.password);
+        
+        if (!checkPass) {
             return callback({
                 code:"NOT_AUTHENTICATED", 
                 data:{}
             });
         }
-        picture = userFind.picture;
+        picture = userFind.picture_url;
     } 
     else { // sinon, on crée l'utilisateur
         picture = picture_url.getRandomURL();
@@ -27,17 +28,21 @@ function authenticate({ username, password }, callback) {
             const user = new UserSchema({
                 username: username,
                 password: hash,
-                picture_url: picture // TODO: user a enregistré selon le MODEL
+                picture_url: picture,
+                last_activity_at: new Date()
             });
+            userFind = user;
             user.save()
                 .then((savedUser) => console.log(savedUser))
                 .catch(error => console.log({ error: error }));
             userFind = user;
         })
-        .catch(error => res.status(500).json({ error: error }));
+        .catch((error) => {
+            return console.log({ error: error })
+        });
     }
 
-    let token = jsonwebtoken.sign({ data : process.env.SECRET_KEY }, userFind, { expiresIn: '1h' });
+    let token = jsonwebtoken.sign({data : userFind.username}, process.env.SECRET_KEY, { expiresIn: "1h" });
 
     return callback({
         code:"SUCCESS", 
@@ -49,19 +54,30 @@ function authenticate({ username, password }, callback) {
     });
 }
 
-function getUsers({token}, callback) { // liste des utilisateurs présents, token -> vérifie si nous sommes identifiés
-
+async function getUsers({token}, callback) { // liste des utilisateurs présents, token -> vérifie si nous sommes identifiés
+    
     if(token) {
+
         try {
             let decoded = jsonwebtoken.verify(token, 'patata');
             
             if(!decoded) {
                 throw "non connecté";
             }
+            const usersBDD = await UserSchema.find().exec();
+            let data = [];
+            data.forEach(user => {
+                data.push({"username" : user.username, "picture_url" : user.picture_url, "awake": true})
+            });
+            callback({
+                code:"SUCCESS", 
+                data:{
+                    "users": data
+                }
+            });
         } catch (e) {
             return console.log("Erreur : "+e);
         }
-        callback({code:"SUCCESS", data:{}});
     }
 }
 

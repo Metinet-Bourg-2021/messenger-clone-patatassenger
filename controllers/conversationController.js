@@ -1,5 +1,6 @@
+
 require('dotenv/config');
-const ConversationSchema = require('../models/ConversationSchema');
+const ConversationSchema = require('../models/conversationSchema');
 
 function getOrCreateOneToOneConversation({ token, username }, callback) {
     let decoded = '';
@@ -57,6 +58,6 @@ function seeConversation({ token, conversation_id, message_id }, callback) {
 module.exports = {
     getOrCreateOneToOneConversation : getOrCreateOneToOneConversation,
     createManyToManyConversation : createManyToManyConversation,
-    getConversations : getConversations,
-    seeConversation : seeConversation
+    seeConversation : seeConversation,
+    getConversations : getConversations
 };
