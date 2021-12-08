@@ -1,4 +1,4 @@
-const MessageSchema = require('../models/MessageSchema');
+const MessageSchema = require('../models/messageSchema');
 
 function postMessage({ token, conversation_id, content }, callback) {
     callback({code:"SUCCESS", data:{}});

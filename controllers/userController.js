@@ -2,7 +2,7 @@ require('dotenv/config');
 const picture_url = require('../services/pictures');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const UserSchema = require('../models/UserSchema');
+const UserSchema = require('../models/userSchema');
 
 async function authenticate({ username, password }, callback) {
     let userFind = await UserSchema.find({username : username}).exec();

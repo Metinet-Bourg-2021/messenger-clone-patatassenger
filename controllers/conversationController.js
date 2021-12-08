@@ -1,4 +1,4 @@
-const ConversationSchema = require('../models/ConversationSchema');
+const ConversationSchema = require('../models/conversationSchema');
 
 function getOrCreateOneToOneConversation({ token, username }, callback) {
     callback({code:"SUCCESS", data:{}});
