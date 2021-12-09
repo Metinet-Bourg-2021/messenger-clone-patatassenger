@@ -5,82 +5,98 @@ const bcrypt = require('bcrypt');
 const UserSchema = require('../models/userSchema');
 
 async function authenticate({ username, password }, callback) {
-    let userFind = await UserSchema.find({username : username}).exec();
+    let userFind = await UserSchema.findOne({ username: username }).exec();
     let picture = '';
 
     if (userFind.length !== 0) { // si on essaie de se connecter et que le username existe dans la BDD
-        userFind = userFind[0];
         let checkPass = await bcrypt.compare(password, userFind.password);
-        
+
         if (!checkPass) {
             return callback({
-                code:"NOT_AUTHENTICATED", 
-                data:{}
+                code: "NOT_AUTHENTICATED",
+                data: {}
             });
         }
+        // met à jour "awake" pour dire que l'utilisateur est connecté
+        await UserSchema.findOneAndUpdate({ username: username }, { awake: true });
         picture = userFind.picture_url;
-    } 
-    else { // sinon, on crée l'utilisateur
+    } else { // sinon, on crée l'utilisateur
         picture = picture_url.getRandomURL();
 
         bcrypt.hash(password, 10)
-        .then(hash => {
-            const user = new UserSchema({
-                username: username,
-                password: hash,
-                picture_url: picture,
-                last_activity_at: new Date()
+            .then(hash => {
+                const user = new UserSchema({
+                    username: username,
+                    password: hash,
+                    picture_url: picture,
+                    last_activity_at: new Date(),
+                    awake: true
+                });
+                userFind = user;
+                user.save()
+                    .then((savedUser) => console.log(savedUser))
+                    .catch(error => console.log({ error: error }));
+            })
+            .catch((error) => {
+                return console.log({ error: error })
             });
-            userFind = user;
-            user.save()
-                .then((savedUser) => console.log(savedUser))
-                .catch(error => console.log({ error: error }));
-        })
-        .catch((error) => {
-            return console.log({ error: error })
-        });
     }
-    let token = jsonwebtoken.sign({data : userFind.username}, process.env.SECRET_KEY, { expiresIn: "1h" });
+    let token = jsonwebtoken.sign({ data: userFind.username }, process.env.SECRET_KEY, { expiresIn: "1h" });
 
     return callback({
-        code:"SUCCESS", 
-        data:{
-            "username":username,
+        code: "SUCCESS",
+        data: {
+            "username": username,
             "token": token,
             "picture_url": picture
         }
     });
 }
 
-async function getUsers({token}, callback) { // liste des utilisateurs présents, token -> vérifie si nous sommes identifiés
-    
-    if(token) {
+// liste des utilisateurs présents, token -> vérifie si nous sommes identifiés
+async function getUsers({ token }, callback) {
+
+    if (token) {
 
         try {
-            let decoded = jsonwebtoken.verify(token, 'patata');
-            
-            if(!decoded) {
+            let decoded = jsonwebtoken.verify(token, process.env.SECRET_KEY);
+
+            if (!decoded) {
                 throw "non connecté";
             }
             const usersBDD = await UserSchema.find().exec();
             let data = [];
-            data.forEach(user => {
-                data.push({"username" : user.username, "picture_url" : user.picture_url, "awake": true})
+            usersBDD.forEach(user => {
+                data.push({ "username": user.username, "picture_url": user.picture_url, "awake": user.awake });
             });
             callback({
-                code:"SUCCESS", 
-                data:{
+                code: "SUCCESS",
+                data: {
                     "users": data
                 }
             });
         } catch (e) {
-            return console.log("Erreur : "+e);
+            return console.log("Erreur : " + e);
         }
     }
 }
 
+// envoie "awake : false" à la bdd pour le user y'avant le username 
+async function disconnect(username) {
+
+    if (username) {
+
+        try {
+            // met à jour "awake" pour dire que l'utilisateur est déconnecté
+            await UserSchema.findOneAndUpdate({ username: username }, { awake: false });
+        } catch (e) {
+            return console.log("Erreur : " + e);
+        }
+    }
+}
 
 module.exports = {
-    authenticate : authenticate, 
-    getUsers : getUsers
+    authenticate: authenticate,
+    getUsers: getUsers,
+    disconnect: disconnect
 };

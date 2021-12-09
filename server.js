@@ -27,32 +27,33 @@ io.on("connection", socket => {
     //Remplacer les callbacks par des fonctions dans d'autres fichiers.
 
     socket.on("@authenticate", ({ username, password }, callback) => {
-         
-        if(!allSockets.find(element => element.socket === socket))
-            allSockets.push({name : username, socket : socket});
+
+        if (!allSockets.find(element => element.socket === socket))
+            allSockets.push({ name: username, socket: socket });
         userController.authenticate({ username, password }, callback);
     });
     socket.on("@getUsers", ({ token }, callback) => { userController.getUsers({ token }, callback); });
 
-    socket.on("@getOrCreateOneToOneConversation", ({token, username}, callback) => { conversationController.getOrCreateOneToOneConversation({ token, username }, callback);  });
-    socket.on("@createManyToManyConversation", ({token, usernames}, callback) => { conversationController.createManyToManyConversation({ token, usernames }, callback); });
-    socket.on("@getConversations", ({token}, callback) => { conversationController.getConversations({ token }, callback); });
-    socket.on("@seeConversation", ({token, conversation_id, message_id}, callback) => { conversationController.seeConversation({ token, conversation_id, message_id }, callback); });
+    socket.on("@getOrCreateOneToOneConversation", ({ token, username }, callback) => { conversationController.getOrCreateOneToOneConversation({ token, username }, callback); });
+    socket.on("@createManyToManyConversation", ({ token, usernames }, callback) => { conversationController.createManyToManyConversation({ token, usernames }, callback); });
+    socket.on("@getConversations", ({ token }, callback) => { conversationController.getConversations({ token }, callback); });
+    socket.on("@seeConversation", ({ token, conversation_id, message_id }, callback) => { conversationController.seeConversation({ token, conversation_id, message_id }, callback); });
 
-    socket.on("@postMessage", ({token, conversation_id, content}, callback) => { messageController.postMessage({ token, conversation_id, content }, callback); });
-    socket.on("@replyMessage", ({token, conversation_id, message_id, content}, callback) => { messageController.replyMessage({ token, conversation_id, message_id, content }, callback); });
-    socket.on("@editMessage", ({token, conversation_id, message_id, content}, callback) => { messageController.editMessage({ token, conversation_id, message_id, content }, callback); });
-    socket.on("@reactMessage", ({token, conversation_id, message_id, reaction}, callback) => { messageController.reactMessage({ token, conversation_id, message_id, reaction }, callback); });
-    socket.on("@deleteMessage", ({token, conversation_id, message_id, content}, callback) => { messageController.deleteMessage({ token, conversation_id, message_id, content }, callback); });
-    
-    socket.on("disconnect", (reason) =>{ 
+    socket.on("@postMessage", ({ token, conversation_id, content }, callback) => { messageController.postMessage({ token, conversation_id, content }, callback); });
+    socket.on("@replyMessage", ({ token, conversation_id, message_id, content }, callback) => { messageController.replyMessage({ token, conversation_id, message_id, content }, callback); });
+    socket.on("@editMessage", ({ token, conversation_id, message_id, content }, callback) => { messageController.editMessage({ token, conversation_id, message_id, content }, callback); });
+    socket.on("@reactMessage", ({ token, conversation_id, message_id, reaction }, callback) => { messageController.reactMessage({ token, conversation_id, message_id, reaction }, callback); });
+    socket.on("@deleteMessage", ({ token, conversation_id, message_id, content }, callback) => { messageController.deleteMessage({ token, conversation_id, message_id, content }, callback); });
+
+    socket.on("disconnect", async(reason) => {
         let index = allSockets.findIndex(element => element.socket === socket);
-        
-        if(index !== -1) {
+
+        if (index !== -1) {
+            await userController.disconnect(allSockets[index].name);
             console.log('Déconnexion : ', reason, allSockets[index].name);
             allSockets.splice(index, 1);
         }
-     });
+    });
 });
 
 // Addresse du serveur démo: wss://teach-vue-chat-server.glitch.me
