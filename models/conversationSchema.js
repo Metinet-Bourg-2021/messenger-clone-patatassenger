@@ -19,8 +19,7 @@ const conversationSchema = mongoose.Schema({
     },
     messages:
     {
-        type: [MessageSchema],
-        default: []
+        type: [mongoose.Types.ObjectId]
     },
     theme: 
     {
