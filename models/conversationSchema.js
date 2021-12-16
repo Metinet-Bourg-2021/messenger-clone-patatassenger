@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const conversationSchema = mongoose.Schema({
-    name:
+    title:
     {
         type: String,
         require: true
@@ -13,7 +13,7 @@ const conversationSchema = mongoose.Schema({
     },
     participants:
     {
-        type: [mongoose.Types.ObjectId],
+        type: [String],
         require: true
     },
     messages:
@@ -30,7 +30,11 @@ const conversationSchema = mongoose.Schema({
     },
     seen:
     {
-        type: [mongoose.Types.ObjectId]
+        type: {}
+    },
+    typing:
+    {
+        type: {}
     }
 }, { minimize: false });
 

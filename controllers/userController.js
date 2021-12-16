@@ -4,6 +4,12 @@ const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const UserSchema = require('../models/userSchema');
 
+/**
+ * Authentifie l'utilisateur
+ * @param {Object} { username, password } 
+ * @param {Function} callback 
+ * @returns 
+ */
 async function authenticate({ username, password }, callback) {
     let userFind = await UserSchema.findOne({ username: username }).exec();
     let picture = '';
@@ -41,6 +47,7 @@ async function authenticate({ username, password }, callback) {
         }
     }
     let token = jsonwebtoken.sign({ data: userFind.username }, process.env.SECRET_KEY, { expiresIn: "1h" });
+    console.log('Connexion :', username);
 
     return callback({
         code: "SUCCESS",
@@ -52,7 +59,12 @@ async function authenticate({ username, password }, callback) {
     });
 }
 
-// liste des utilisateurs présents, token -> vérifie si nous sommes identifiés
+/**
+ * Liste des utilisateurs présents
+ * @param {Object} { token } vérifie si nous sommes identifiés
+ * @param {Function} callback 
+ * @returns 
+ */
 async function getUsers({ token }, callback) {
 
     if (token) {
@@ -60,8 +72,11 @@ async function getUsers({ token }, callback) {
         try {
             let decoded = jsonwebtoken.verify(token, process.env.SECRET_KEY);
 
-            if (!decoded) {
-                throw "non connecté";
+            if (!decoded || decoded.exp * 1000 < Date.now()) {
+                return callback({
+                    code: "NOT_AUTHENTICATED",
+                    data: {}
+                });
             }
             const usersBDD = await UserSchema.find().exec();
             let data = [];
@@ -80,7 +95,11 @@ async function getUsers({ token }, callback) {
     }
 }
 
-// envoie "awake : false" à la bdd pour le user y'avant le username 
+/**
+ * Envoie "awake : false" à la BDD pour l'utilisateur soit déconnecter
+ * @param {String} username 
+ * @returns 
+ */
 async function disconnect(username) {
 
     if (username) {
