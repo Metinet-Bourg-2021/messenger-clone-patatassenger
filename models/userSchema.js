@@ -15,9 +15,6 @@ const userSchema = mongoose.Schema({
     },
     last_activity_at: {
         type: Date
-    },
-    awake: {
-        type: Boolean
     }
 });
 
