@@ -15,11 +15,6 @@ const messageSchema = mongoose.Schema({
     {
         type: Date
     },
-    conversation_id:
-    {
-        type: mongoose.Types.ObjectId,
-        require: true
-    },
     reply_to:
     {
         type: mongoose.Types.ObjectId,
