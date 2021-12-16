@@ -2,10 +2,15 @@ require('dotenv/config');
 const ConversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
 const jsonwebtoken = require('jsonwebtoken');
-const mongoose = require('mongoose');
 const conversationSchema = require('../models/conversationSchema');
-const { off } = require('../models/conversationSchema');
 
+/**
+ * Récupère ou crée une conversation one to one
+ * @param {Object} { token, username } 
+ * @param {Function} callback 
+ * @param {Object} allSockets 
+ * @returns callback
+ */
 async function getOrCreateOneToOneConversation({ token, username }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
     
@@ -81,6 +86,13 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
     }
 }
 
+/**
+ * Crée une conversation many to many
+ * @param {Object} { token, usernames } 
+ * @param {Function} callback 
+ * @param {Object} allSockets 
+ * @returns callback
+ */
 async function createManyToManyConversation({ token, usernames }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
 
@@ -142,7 +154,12 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
     });
 }
 
-// Récupère toutes les conversations pour l'utilisateur
+/**
+ * Récupère toutes les conversations pour l'utilisateur
+ * @param {Object} { token } 
+ * @param {Function} callback 
+ * @returns 
+ */
 async function getConversations({ token }, callback) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
 
@@ -194,6 +211,13 @@ async function getConversations({ token }, callback) {
 }
 
 // TODO : à tester
+/**
+ * Met à jour les participants ayant vu la conversation en envoyant l'information aux participants connectés
+ * @param {Object} { token, conversation_id, message_id } 
+ * @param {Function} callback 
+ * @param {Object} allSockets 
+ * @returns 
+ */
 function seeConversation({ token, conversation_id, message_id }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
 
