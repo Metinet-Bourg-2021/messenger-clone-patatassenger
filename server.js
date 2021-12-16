@@ -12,11 +12,7 @@ const messageController = require("./controllers/messageController");
 const conversationController = require("./controllers/conversationController");
 const allSockets = [];
 
-mongoose.connect(process.env.DB_ADRESS);
-
-app.get("/", (req, res) => {
-    res.send("A utiliser pour du debug si vous avez besoin...");
-});
+mongoose.connect(process.env.DB_ADDRESS);
 
 server.listen(process.env.PORT, () => {
     console.log("Server is listening on", parseInt(process.env.PORT));

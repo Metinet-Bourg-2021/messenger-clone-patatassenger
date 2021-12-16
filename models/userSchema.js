@@ -8,7 +8,7 @@ const userSchema = mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        require: true
     },
     picture_url: {
         type: String

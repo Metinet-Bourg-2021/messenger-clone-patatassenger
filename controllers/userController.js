@@ -8,7 +8,7 @@ async function authenticate({ username, password }, callback) {
     let userFind = await UserSchema.findOne({ username: username }).exec();
     let picture = '';
 
-    if (userFind.length !== 0) { // si on essaie de se connecter et que le username existe dans la BDD
+    if (userFind && userFind.length !== 0) { // si on essaie de se connecter et que le username existe dans la BDD
         let checkPass = await bcrypt.compare(password, userFind.password);
 
         if (!checkPass) {
@@ -22,24 +22,23 @@ async function authenticate({ username, password }, callback) {
         picture = userFind.picture_url;
     } else { // sinon, on crée l'utilisateur
         picture = picture_url.getRandomURL();
-
-        bcrypt.hash(password, 10)
-            .then(hash => {
-                const user = new UserSchema({
-                    username: username,
-                    password: hash,
-                    picture_url: picture,
-                    last_activity_at: new Date(),
-                    awake: true
-                });
-                userFind = user;
-                user.save()
-                    .then((savedUser) => console.log(savedUser))
-                    .catch(error => console.log({ error: error }));
-            })
-            .catch((error) => {
-                return console.log({ error: error })
+        
+        try {
+            let hash = await bcrypt.hash(password, 10);
+            const user = new UserSchema({
+                username: username,
+                password: hash,
+                picture_url: picture,
+                last_activity_at: new Date(),
+                awake: true
             });
+            userFind = user;
+            let savedUser = await user.save();
+            console.log({savedUser});
+        }
+        catch(error) {
+            console.log({ error: error });
+        }
     }
     let token = jsonwebtoken.sign({ data: userFind.username }, process.env.SECRET_KEY, { expiresIn: "1h" });
 

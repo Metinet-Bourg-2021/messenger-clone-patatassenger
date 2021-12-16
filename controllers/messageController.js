@@ -1,6 +1,6 @@
-const conversationSchema = require('../models/ConversationSchema');
-const MessageSchema = require('../models/MessageSchema');
-const tokenDecoder = require('../services/token');
+const conversationSchema = require('../models/conversationSchema');
+const MessageSchema = require('../models/messageSchema');
+const tokenDecoder = require('jsonwebtoken');
 
 function postMessage({token,conversation_id,content}, callback) {
     let user = tokenDecoder.decodeToken(token);
