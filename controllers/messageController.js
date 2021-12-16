@@ -1,29 +1,55 @@
+require('dotenv/config');
+
 const conversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
 const tokenDecoder = require('jsonwebtoken');
+const messageSchema = require('../models/messageSchema');
 
-function postMessage({token,conversation_id,content}, callback) {
-    let user = tokenDecoder.decodeToken(token);
-    if(!user){
+async function postMessage({token,conversation_id,content}, callback) {
+    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    if(!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
             data: {}
         });
     }
 
+    let conv = await conversationSchema.findById(conversation_id);
+    let deliveredTo = [];
+    conv.participants.forEach(participant => {
+        if(participant!==user.data){
+            deliveredTo[participant]=new Date().toISOString();
+        }
+    });
+
     let message = new MessageSchema({
-        from: user.username,
+        from: user.data,
         content: content,
-        posted_at: Date(now),
-        conversation_id: conversation_id,
+        posted_at: new Date().toISOString(),
+        delivered_to:deliveredTo,
         reply_to: false,
         edited: false,
         deleted: false,
-        reactions: []        
+        reactions: {}      
     });
-    message.save()
-    .then((savedMessage) => console.log(savedMessage))
-    .catch(error => console.log({ error: error }));
+    
+    try{
+        await message.save();
+        console.log(message);
+    }
+    catch(e){
+        console.log({ error: e });
+    }
+
+    conv.messages.push(message);
+
+    try{
+        await conversationSchema.findByIdAndUpdate(conversation_id,{messages:conv.messages});
+        console.log(conv);
+    }
+    catch(e){
+        console.log({ error: e });
+    }
 
     callback({
         code: "SUCCESS",
@@ -34,28 +60,51 @@ function postMessage({token,conversation_id,content}, callback) {
 }
 
 
-function replyMessage({token,conversation_id,message_id,content}, callback) {
-    let user = tokenDecoder.decodeToken(token);
-    if(!user){
-        return callback({
-            code: "NOT_AUTHENTICATED",
-            data: {}
-        });
-    }
+async function replyMessage({token,conversation_id,message_id,content}, callback) {
+    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    if(!user || user.exp * 1000 < Date.now()) {
+            return callback({
+                code: "NOT_AUTHENTICATED",
+                data: {}
+            });
+        }
+
+    let conv = await conversationSchema.findById(conversation_id);
+    let deliveredTo = [];
+    conv.participants.forEach(participant => {
+        if(participant!==user.data){
+            deliveredTo[participant]=new Date().toISOString();
+        }
+    });
 
     let message = new MessageSchema({
-        from: user.username,
+        from: user.data,
         content: content,
-        posted_at: new Date(),
-        conversation_id: conversation_id,
-        reply_to: message_id,
+        posted_at: new Date().toISOString(),
+        delivered_to:deliveredTo,
+        reply_to: messageSchema.findById(message_id),
         edited: false,
         deleted: false,
-        reactions: []        
+        reactions: {}      
     });
-    message.save()
-    .then((savedMessage) => console.log(savedMessage))
-    .catch(error => console.log({ error: error }));
+
+    try{
+        await message.save();
+        console.log(message);
+    }
+    catch(e){
+        console.log({ error: e });
+    }
+
+    conv.messages.push(message);
+
+    try{
+        await conversationSchema.findByIdAndUpdate(conversation_id,{messages:conv.messages});
+        console.log(conv);
+    }
+    catch(e){
+        console.log({ error: e });
+    }
 
     callback({
         code: "SUCCESS",
@@ -65,62 +114,56 @@ function replyMessage({token,conversation_id,message_id,content}, callback) {
     });
 }
 
-async function editMessage({token,conversation_id,message_id,content}, callback) {
-    let user = tokenDecoder.decodeToken(token);
-    if(!user){
+async function editMessage({token,message_id,content}, callback) {
+    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    if(!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
             data: {}
         });
     }
 
-    MessageSchema.findByIdAndUpdate({ id: { $eq: message_id}, conversation_id:{ $eq: conversation_id}}, {content:content, edited:true});
+    await MessageSchema.findByIdAndUpdate( message_id, {content:content, edited:true});
     
     callback({
         code: "SUCCESS",
-        data: {
-            message: MessageSchema.findById(message_id)
-        }
+        data: {}
     });
 }
 
-function reactMessage({token,conversation_id,message_id,reaction}, callback) {
-    let user = tokenDecoder.decodeToken(token);
-    if(!user){
+async function reactMessage({token,message_id,reaction}, callback) {
+    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    if(!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
             data: {}
         });
     }
 
-    let message = MessageSchema.findById(message_id);
+    let message = await MessageSchema.findById(message_id);
     message.reactions.push(reaction);
-    MessageSchema.findByIdAndUpdate({ id: { $eq: message_id}, conversation_id:{ $eq: conversation_id}}, {reactions:message.reactions});
+    await MessageSchema.findByIdAndUpdate(message_id, {reactions:message.reactions});
 
     callback({
         code: "SUCCESS",
-        data: {
-            message: message
-        }
+        data: {}
     });
 }
 
-function deleteMessage({token,conversation_id,message_id,content}, callback) {
-    let user = tokenDecoder.decodeToken(token);
-    if(!user){
+async function deleteMessage({token,message_id}, callback) {
+    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    if(!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
             data: {}
         });
     }
 
-    let retour =MessageSchema.findByIdAndRemove({ id: { $eq: message_id}, conversation_id:{ $eq: conversation_id}, content:{ $eq: content}});
+    await MessageSchema.findByIdAndRemove(message_id);
 
     callback({
         code: "SUCCESS",
-        data: {
-            retour: retour
-        }
+        data: {}
     });
 }
 
