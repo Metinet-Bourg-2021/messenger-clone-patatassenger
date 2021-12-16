@@ -15,6 +15,10 @@ const messageSchema = mongoose.Schema({
     {
         type: Date
     },
+    delivered_to:
+    {
+        type: Object
+    },
     reply_to:
     {
         type: mongoose.Types.ObjectId,
@@ -32,7 +36,7 @@ const messageSchema = mongoose.Schema({
     },
     reactions:
     {
-        type: Array
+        type: Object
     }
 }, { minimize: false });
 

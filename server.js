@@ -46,19 +46,19 @@ io.on("connection", socket => {
     });
 
     socket.on("@postMessage", ({ token, conversation_id, content }, callback) => {
-        messageController.postMessage({ token, conversation_id, content }, callback);
+        messageController.postMessage({ token, conversation_id, content }, callback, allSockets);
     });
     socket.on("@replyMessage", ({ token, conversation_id, message_id, content }, callback) => {
-        messageController.replyMessage({ token, conversation_id, message_id, content }, callback);
+        messageController.replyMessage({ token, conversation_id, message_id, content }, callback, allSockets);
     });
     socket.on("@editMessage", ({ token, conversation_id, message_id, content }, callback) => {
-        messageController.editMessage({ token, conversation_id, message_id, content }, callback);
+        messageController.editMessage({ token, conversation_id, message_id, content }, callback, allSockets);
     });
     socket.on("@reactMessage", ({ token, conversation_id, message_id, reaction }, callback) => {
-        messageController.reactMessage({ token, conversation_id, message_id, reaction }, callback);
+        messageController.reactMessage({ token, conversation_id, message_id, reaction }, callback, allSockets);
     });
     socket.on("@deleteMessage", ({ token, conversation_id, message_id, content }, callback) => {
-        messageController.deleteMessage({ token, conversation_id, message_id, content }, callback);
+        messageController.deleteMessage({ token, conversation_id, message_id, content }, callback, allSockets);
     });
 
     socket.on("disconnect", async(reason) => {

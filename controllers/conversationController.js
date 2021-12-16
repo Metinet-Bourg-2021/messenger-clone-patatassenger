@@ -3,6 +3,7 @@ const ConversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
 const jsonwebtoken = require('jsonwebtoken');
 const conversationSchema = require('../models/conversationSchema');
+const messageSchema = require('../models/messageSchema');
 
 /**
  * Récupère ou crée une conversation one to one
@@ -169,22 +170,34 @@ async function getConversations({ token }, callback) {
             data: {}
         });
     }
-
+/*
+    .aggregate.lookup({
+            from: "messagesSchemas", // collection name in db
+            localField: "_id",
+            foreignField: "messages",
+            as: "messages"
+        });
+    }]).*/
     const conversations = await ConversationSchema.find().exec();
     let conversationsUser = [];
 
+    console.log(conversations);
     for(let conversation of conversations) {
 
         // Si une conversation a été trouvée avec le nom de l'utilisateur 
         if(conversation._id && conversation.participants.includes(userSession.data)) {
+            
+            /*
             let messagesConv = [];
-
             for(let message_id of conversation.messages) {
-                const message = await MessageSchema.find({_id : message_id});
+                const message = await MessageSchema.findOne({_id : message_id});
                 messagesConv.push(message);
             }
+            console.log(messagesConv);
             conversation.messages.splice(0, conversation.messages.length, ...messagesConv);
-            
+            */
+
+
             let title = 'Groupe: ';
             conversation.participants.forEach(participant => {
 
@@ -199,6 +212,10 @@ async function getConversations({ token }, callback) {
                     }
                 }
             });
+
+            for(let [key,id] of Object.entries(conversation.messages)){
+                conversation.messages[key]=messageSchema.findById(id);
+            }
             conversation.title = title;
             conversationsUser.push(conversation.toObject({virtuals : true, versionKey : false}));
         }
@@ -220,7 +237,7 @@ async function getConversations({ token }, callback) {
  */
 function seeConversation({ token, conversation_id, message_id }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
-
+    console.log(conversation_id, message_id)
     if(!userSession || userSession.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
@@ -229,24 +246,32 @@ function seeConversation({ token, conversation_id, message_id }, callback, allSo
     }
 
     let conversation = conversationSchema.findById(conversation_id);
-    conversation.seen[userSession.data] = {
-        message_id : message_id,
-        time : new Date().toISOString()
-    };
+    console.log(conversation);
+    if(conversation._id ){
+        conversation.seen[userSession.data] = {
+            message_id : message_id,
+            time : new Date().toISOString()
+        };
 
-    for(let username of conversation.participants) {
-        if(username !== userSession.data) {
-            let socketUserOfConv = allSockets.find(element => element.name === username);
-            if(socketUserOfConv) {
-                socketUserOfConv.socket.emit("@conversationSeen", {conversation : conversation.toObject({virtuals : true, versionKey : false})});
+        for(let username of conversation.participants) {
+            if(username !== userSession.data) {
+                let socketUserOfConv = allSockets.find(element => element.name === username);
+                if(socketUserOfConv) {
+                    socketUserOfConv.socket.emit("@conversationSeen", {conversation : conversation.toObject({virtuals : true, versionKey : false})});
+                }
             }
         }
+        
+        return callback({
+            code:"SUCCESS", 
+            data:{conversation : conversation}
+        });
     }
-    
     return callback({
-        code:"SUCCESS", 
-        data:{conversation : conversation}
+        code:"NOT_FOUND_CONVERSATION", 
+        data:{}
     });
+    
 }
 
 module.exports = {

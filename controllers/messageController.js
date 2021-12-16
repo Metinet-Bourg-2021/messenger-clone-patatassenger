@@ -5,7 +5,7 @@ const MessageSchema = require('../models/messageSchema');
 const tokenDecoder = require('jsonwebtoken');
 const messageSchema = require('../models/messageSchema');
 
-async function postMessage({token,conversation_id,content}, callback) {
+async function postMessage({token,conversation_id,content}, callback,allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if(!user || user.exp * 1000 < Date.now()) {
         return callback({
@@ -14,8 +14,10 @@ async function postMessage({token,conversation_id,content}, callback) {
         });
     }
 
+    console.log(conversation_id);
     let conv = await conversationSchema.findById(conversation_id);
-    let deliveredTo = [];
+    let deliveredTo = {};
+    console.log(conv);
     conv.participants.forEach(participant => {
         if(participant!==user.data){
             deliveredTo[participant]=new Date().toISOString();
@@ -27,7 +29,7 @@ async function postMessage({token,conversation_id,content}, callback) {
         content: content,
         posted_at: new Date().toISOString(),
         delivered_to:deliveredTo,
-        reply_to: false,
+        reply_to: null,
         edited: false,
         deleted: false,
         reactions: {}      
@@ -41,7 +43,8 @@ async function postMessage({token,conversation_id,content}, callback) {
         console.log({ error: e });
     }
 
-    conv.messages.push(message);
+    conv.messages.push(message._id.toString());
+    conv.seen[user.data]={message_id:message._id.toString(), time: new Date().toISOString()}
 
     try{
         await conversationSchema.findByIdAndUpdate(conversation_id,{messages:conv.messages});
@@ -51,16 +54,26 @@ async function postMessage({token,conversation_id,content}, callback) {
         console.log({ error: e });
     }
 
+    // Pour chaque participants autres que l'utilisateur, envoie un événement messagePosted
+    for(let participant of conv.participants) {
+        if(participant!==user.data){
+            let socketUserOfConv = allSockets.find(element => element.name === participant.username);
+            if(socketUserOfConv) {
+                socketUserOfConv.socket.emit("@messagePosted", {conversation_id : conversation_id, message : message.toObject({virtuals : true, versionKey : false})});
+            }
+        }
+    }
+
     callback({
         code: "SUCCESS",
         data: {
-            message: message
+            message: message.toObject({virtuals : true, versionKey : false})
         }
     });
 }
 
 
-async function replyMessage({token,conversation_id,message_id,content}, callback) {
+async function replyMessage({token,conversation_id,message_id,content}, callback,allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if(!user || user.exp * 1000 < Date.now()) {
             return callback({
@@ -114,7 +127,7 @@ async function replyMessage({token,conversation_id,message_id,content}, callback
     });
 }
 
-async function editMessage({token,message_id,content}, callback) {
+async function editMessage({token,message_id,content}, callback,allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if(!user || user.exp * 1000 < Date.now()) {
         return callback({
@@ -131,7 +144,7 @@ async function editMessage({token,message_id,content}, callback) {
     });
 }
 
-async function reactMessage({token,message_id,reaction}, callback) {
+async function reactMessage({token,message_id,reaction}, callback,allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if(!user || user.exp * 1000 < Date.now()) {
         return callback({
@@ -150,7 +163,7 @@ async function reactMessage({token,message_id,reaction}, callback) {
     });
 }
 
-async function deleteMessage({token,message_id}, callback) {
+async function deleteMessage({token,message_id}, callback,allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if(!user || user.exp * 1000 < Date.now()) {
         return callback({
