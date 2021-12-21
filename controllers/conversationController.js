@@ -3,7 +3,7 @@ const ConversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
 const jsonwebtoken = require('jsonwebtoken');
 const conversationSchema = require('../models/conversationSchema');
-const messageSchema = require('../models/messageSchema');
+const mongoose = require('mongoose');
 
 /**
  * Récupère ou crée une conversation one to one
@@ -170,34 +170,36 @@ async function getConversations({ token }, callback) {
             data: {}
         });
     }
-/*
-    .aggregate.lookup({
-            from: "messagesSchemas", // collection name in db
-            localField: "_id",
-            foreignField: "messages",
-            as: "messages"
-        });
-    }]).*/
+    
     const conversations = await ConversationSchema.find().exec();
     let conversationsUser = [];
 
-    console.log(conversations);
     for(let conversation of conversations) {
+        let conversationToReturn = {
+            id: conversation._id.toString(),
+            title: conversation.title,
+            type: conversation.type,
+            participants: conversation.participants,
+            messages: [],
+            theme: conversation.theme,
+            updated_at: conversation.updated_at,
+            seen: conversation.seen,
+            typing: conversation.typing
+        };
 
         // Si une conversation a été trouvée avec le nom de l'utilisateur 
         if(conversation._id && conversation.participants.includes(userSession.data)) {
             
-            /*
-            let messagesConv = [];
             for(let message_id of conversation.messages) {
-                const message = await MessageSchema.findOne({_id : message_id});
-                messagesConv.push(message);
+                try {
+                    const message = await MessageSchema.findOne({_id : message_id});
+                    conversationToReturn.messages.push(message);
+                }
+                catch(error) {
+                    console.log({ error: error });
+                }
             }
-            console.log(messagesConv);
-            conversation.messages.splice(0, conversation.messages.length, ...messagesConv);
-            */
-
-
+            
             let title = 'Groupe: ';
             conversation.participants.forEach(participant => {
 
@@ -213,11 +215,8 @@ async function getConversations({ token }, callback) {
                 }
             });
 
-            for(let [key,id] of Object.entries(conversation.messages)){
-                conversation.messages[key]=messageSchema.findById(id);
-            }
-            conversation.title = title;
-            conversationsUser.push(conversation.toObject({virtuals : true, versionKey : false}));
+            conversationToReturn.title = title;
+            conversationsUser.push(conversationToReturn);
         }
     }
 
@@ -235,7 +234,7 @@ async function getConversations({ token }, callback) {
  * @param {Object} allSockets 
  * @returns 
  */
-function seeConversation({ token, conversation_id, message_id }, callback, allSockets) {
+async function seeConversation({ token, conversation_id, message_id }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
     console.log(conversation_id, message_id)
     if(!userSession || userSession.exp * 1000 < Date.now()) {
@@ -244,27 +243,41 @@ function seeConversation({ token, conversation_id, message_id }, callback, allSo
             data: {}
         });
     }
+    let conversation = {};
 
-    let conversation = conversationSchema.findById(conversation_id);
-    console.log(conversation);
-    if(conversation._id ){
+    try {
+        conversation = await conversationSchema.findById(mongoose.Types.ObjectId(conversation_id));
+    }
+    catch(error) {
+        console.log({ error: error });
+    }
+
+    if (conversation._id){
         conversation.seen[userSession.data] = {
             message_id : message_id,
             time : new Date().toISOString()
         };
+        
+        try {
+            await conversationSchema.findByIdAndUpdate(conversation_id,{seen: conversation.seen});
+        }
+        catch(error) {
+            console.log({ error: error });
+        }
 
         for(let username of conversation.participants) {
             if(username !== userSession.data) {
                 let socketUserOfConv = allSockets.find(element => element.name === username);
                 if(socketUserOfConv) {
-                    socketUserOfConv.socket.emit("@conversationSeen", {conversation : conversation.toObject({virtuals : true, versionKey : false})});
+                    socketUserOfConv.socket.emit("@conversationSeen", conversation.toObject({virtuals : true, versionKey : false}));
                 }
             }
         }
         
+        console.log(conversation)
         return callback({
             code:"SUCCESS", 
-            data:{conversation : conversation}
+            data:{conversation : conversation.toObject({virtuals : true, versionKey : false})}
         });
     }
     return callback({

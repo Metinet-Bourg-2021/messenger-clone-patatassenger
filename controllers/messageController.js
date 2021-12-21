@@ -5,7 +5,7 @@ const MessageSchema = require('../models/messageSchema');
 const tokenDecoder = require('jsonwebtoken');
 const messageSchema = require('../models/messageSchema');
 
-async function postMessage({token,conversation_id,content}, callback,allSockets) {
+async function postMessage({token,conversation_id,content}, callback, allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if(!user || user.exp * 1000 < Date.now()) {
         return callback({
@@ -14,10 +14,8 @@ async function postMessage({token,conversation_id,content}, callback,allSockets)
         });
     }
 
-    console.log(conversation_id);
     let conv = await conversationSchema.findById(conversation_id);
     let deliveredTo = {};
-    console.log(conv);
     conv.participants.forEach(participant => {
         if(participant!==user.data){
             deliveredTo[participant]=new Date().toISOString();
@@ -25,6 +23,7 @@ async function postMessage({token,conversation_id,content}, callback,allSockets)
     });
 
     let message = new MessageSchema({
+        id: conv.messages.length,
         from: user.data,
         content: content,
         posted_at: new Date().toISOString(),
@@ -37,7 +36,7 @@ async function postMessage({token,conversation_id,content}, callback,allSockets)
     
     try{
         await message.save();
-        console.log(message);
+        console.log({message});
     }
     catch(e){
         console.log({ error: e });

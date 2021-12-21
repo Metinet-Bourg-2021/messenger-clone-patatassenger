@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const messageSchema = mongoose.Schema({
+    id: 
+    {
+        type: Number,
+        require: true
+    },
     from: 
     {
         type: String,
