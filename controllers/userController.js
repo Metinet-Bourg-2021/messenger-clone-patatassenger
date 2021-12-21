@@ -25,7 +25,7 @@ async function authenticate({ username, password }, callback, allSockets) {
             });
         }
         // met à jour "last_activity_at"
-        await UserSchema.findOneAndUpdate({ username: username }, { last_activity_at: new Date().toISOString() });
+        await UserSchema.findOneAndUpdate({ username: username }, { last_activity_at: new Date().toString() });
         picture = userFind.picture_url;
     } else { // sinon, on crée l'utilisateur
         picture = picture_url.getRandomURL();
@@ -36,7 +36,7 @@ async function authenticate({ username, password }, callback, allSockets) {
                 username: username,
                 password: hash,
                 picture_url: picture,
-                last_activity_at: new Date().toISOString()
+                last_activity_at: new Date().toString()
             });
             userFind = user;
             allSockets.forEach(element => {
@@ -92,12 +92,13 @@ async function getUsers({ token }, callback) {
                 let lastActivity = new Date(user.last_activity_at);
                 lastActivity.setMinutes(lastActivity.getMinutes() + 5);
                 
-                if(lastActivity < new Date()) {
+                if(lastActivity > new Date()) {
                     awake = true;
                 }
-
+                
                 data.push({ "username": user.username, "picture_url": user.picture_url, "awake": awake });
             });
+            
             callback({
                 code: "SUCCESS",
                 data: {
