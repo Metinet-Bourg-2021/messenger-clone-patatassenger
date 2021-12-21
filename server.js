@@ -26,10 +26,10 @@ io.on("connection", socket => {
 
         if (!allSockets.find(element => element.socket === socket))
             allSockets.push({ name: username, socket: socket });
-        userController.authenticate({ username, password }, callback);
+        userController.authenticate({ username, password }, callback, allSockets);
     });
     socket.on("@getUsers", ({ token }, callback) => {
-        userController.getUsers({ token }, callback);
+        userController.getUsers({ token }, callback, allSockets);
     });
 
     socket.on("@getOrCreateOneToOneConversation", ({ token, username }, callback) => {
@@ -65,7 +65,7 @@ io.on("connection", socket => {
         let index = allSockets.findIndex(element => element.socket === socket);
 
         if (index !== -1) {
-            await userController.disconnect(allSockets[index].name);
+            //await userController.disconnect(allSockets[index].name);
             console.log('Déconnexion : ', allSockets[index].name, reason);
             allSockets.splice(index, 1);
         }

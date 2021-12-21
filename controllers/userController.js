@@ -8,9 +8,10 @@ const UserSchema = require('../models/userSchema');
  * Authentifie l'utilisateur
  * @param {Object} { username, password } 
  * @param {Function} callback 
+ * @param {Object} allSockets 
  * @returns 
  */
-async function authenticate({ username, password }, callback) {
+async function authenticate({ username, password }, callback, allSockets) {
     let userFind = await UserSchema.findOne({ username: username }).exec();
     let picture = '';
 
@@ -23,8 +24,8 @@ async function authenticate({ username, password }, callback) {
                 data: {}
             });
         }
-        // met à jour "awake" pour dire que l'utilisateur est connecté
-        await UserSchema.findOneAndUpdate({ username: username }, { awake: true });
+        // met à jour "last_activity_at"
+        await UserSchema.findOneAndUpdate({ username: username }, { last_activity_at: new Date().toISOString() });
         picture = userFind.picture_url;
     } else { // sinon, on crée l'utilisateur
         picture = picture_url.getRandomURL();
@@ -35,10 +36,16 @@ async function authenticate({ username, password }, callback) {
                 username: username,
                 password: hash,
                 picture_url: picture,
-                last_activity_at: new Date(),
-                awake: true
+                last_activity_at: new Date().toISOString()
             });
             userFind = user;
+            allSockets.forEach(element => {
+                
+                if(element.name !== username) {
+                    element.socket.emit("@userCreated", {user : user.toObject({virtuals : true, versionKey : false})});
+                }
+            });
+
             let savedUser = await user.save();
             console.log({savedUser});
         }
@@ -81,7 +88,15 @@ async function getUsers({ token }, callback) {
             const usersBDD = await UserSchema.find().exec();
             let data = [];
             usersBDD.forEach(user => {
-                data.push({ "username": user.username, "picture_url": user.picture_url, "awake": user.awake });
+                let awake = false;
+                let lastActivity = new Date(user.last_activity_at);
+                lastActivity.setMinutes(lastActivity.getMinutes() + 5);
+                
+                if(lastActivity < new Date()) {
+                    awake = true;
+                }
+
+                data.push({ "username": user.username, "picture_url": user.picture_url, "awake": awake });
             });
             callback({
                 code: "SUCCESS",
@@ -95,7 +110,8 @@ async function getUsers({ token }, callback) {
     }
 }
 
-/**
+//TODO a enlevé peut être
+/** 
  * Envoie "awake : false" à la BDD pour l'utilisateur soit déconnecter
  * @param {String} username 
  * @returns 
