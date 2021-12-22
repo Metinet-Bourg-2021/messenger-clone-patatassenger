@@ -43,7 +43,9 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
             });
         }
         else {
+            let lenghtTableConv = await ConversationSchema.count({});
             const newConversation = new ConversationSchema({
+                id: lenghtTableConv,
                 title: "",
                 type: "one_to_one",
                 participants: [username, userSession.data],
@@ -62,20 +64,20 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
     
             try {
                 await newConversation.save();
-                console.log('Create new conversation one_to_one', newConversation.toObject({virtuals : true, versionKey : false}));
+                console.log('Create new conversation one_to_one', newConversation);
             }
             catch(error) {
                 console.log({ error: error });
             }
             let socketUserOfConv = allSockets.find(element => element.name === username);
             if(socketUserOfConv) {
-                socketUserOfConv.socket.emit("@conversationCreated", {conversation : newConversation.toObject({virtuals : true, versionKey : false})});
+                socketUserOfConv.socket.emit("@conversationCreated", {conversation : newConversation});
             }
             newConversation.title = username;
     
             return callback({
                 code:"SUCCESS", 
-                data:{conversation : newConversation.toObject({virtuals : true, versionKey : false})}
+                data:{conversation : newConversation}
             });
         }
     } 
@@ -115,7 +117,9 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
             title += username+', ';
         }
     });
+    let lenghtTableConv = await ConversationSchema.count({});
     const newConversation = new ConversationSchema({
+        id: lenghtTableConv,
         title: "",
         type: "many_to_many",
         participants: participants,
@@ -144,14 +148,14 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
     for(let username of usernames) {
         let socketUserOfConv = allSockets.find(element => element.name === username);
         if(socketUserOfConv) {
-            socketUserOfConv.socket.emit("@conversationCreated", {conversation : newConversation.toObject({virtuals : true, versionKey : false})});
+            socketUserOfConv.socket.emit("@conversationCreated", {conversation : newConversation});
         }
     }
     newConversation.title = title;
 
     return callback({
         code:"SUCCESS", 
-        data:{conversation : newConversation.toObject({virtuals : true, versionKey : false})}
+        data:{conversation : newConversation}
     });
 }
 
@@ -175,20 +179,21 @@ async function getConversations({ token }, callback) {
     let conversationsUser = [];
 
     for(let conversation of conversations) {
-        let conversationToReturn = {
-            id: conversation._id.toString(),
-            title: conversation.title,
-            type: conversation.type,
-            participants: conversation.participants,
-            messages: [],
-            theme: conversation.theme,
-            updated_at: conversation.updated_at,
-            seen: conversation.seen,
-            typing: conversation.typing
-        };
 
         // Si une conversation a été trouvée avec le nom de l'utilisateur 
         if(conversation._id && conversation.participants.includes(userSession.data)) {
+            let conversationToReturn = {
+                _id: conversation._id,
+                id: conversation.id,
+                title: conversation.title,
+                type: conversation.type,
+                participants: conversation.participants,
+                messages: [],
+                theme: conversation.theme,
+                updated_at: conversation.updated_at,
+                seen: conversation.seen,
+                typing: conversation.typing
+            };
             
             for(let message_id of conversation.messages) {
                 try {
@@ -236,7 +241,7 @@ async function getConversations({ token }, callback) {
  */
 async function seeConversation({ token, conversation_id, message_id }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
-    console.log(conversation_id, message_id)
+    
     if(!userSession || userSession.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
@@ -246,7 +251,7 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
     let conversation = {};
 
     try {
-        conversation = await conversationSchema.findById(mongoose.Types.ObjectId(conversation_id));
+        conversation = await conversationSchema.findOne({id: conversation_id});
     }
     catch(error) {
         console.log({ error: error });
@@ -259,7 +264,7 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
         };
         
         try {
-            await conversationSchema.findByIdAndUpdate(conversation_id,{seen: conversation.seen});
+            await conversationSchema.findOneAndUpdate({id: conversation_id}, {seen: conversation.seen});
         }
         catch(error) {
             console.log({ error: error });

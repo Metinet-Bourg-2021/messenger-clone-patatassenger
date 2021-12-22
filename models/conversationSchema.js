@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const conversationSchema = mongoose.Schema({
+    id:
+    {
+        type: Number,
+        require: true
+    },
     title:
     {
         type: String,

@@ -14,7 +14,7 @@ async function postMessage({token,conversation_id,content}, callback, allSockets
         });
     }
 
-    let conv = await conversationSchema.findById(conversation_id);
+    let conv = await conversationSchema.findOne({id: conversation_id});
     let deliveredTo = {};
     conv.participants.forEach(participant => {
         if(participant!==user.data){
@@ -46,7 +46,7 @@ async function postMessage({token,conversation_id,content}, callback, allSockets
     conv.seen[user.data]={message_id:message._id.toString(), time: new Date().toISOString()}
 
     try{
-        await conversationSchema.findByIdAndUpdate(conversation_id,{messages:conv.messages});
+        await conversationSchema.findOneAndUpdate({id: conversation_id}, {messages: conv.messages});
         console.log(conv);
     }
     catch(e){
@@ -81,7 +81,7 @@ async function replyMessage({token,conversation_id,message_id,content}, callback
             });
         }
 
-    let conv = await conversationSchema.findById(conversation_id);
+    let conv = await conversationSchema.findOne({id : conversation_id});
     let deliveredTo = [];
     conv.participants.forEach(participant => {
         if(participant!==user.data){
@@ -111,7 +111,7 @@ async function replyMessage({token,conversation_id,message_id,content}, callback
     conv.messages.push(message);
 
     try{
-        await conversationSchema.findByIdAndUpdate(conversation_id,{messages:conv.messages});
+        await conversationSchema.findOneAndUpdate({id: conversation_id}, {messages: conv.messages});
         console.log(conv);
     }
     catch(e){
