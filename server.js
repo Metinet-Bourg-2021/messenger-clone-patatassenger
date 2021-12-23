@@ -10,7 +10,9 @@ const io = new Server(server, { cors: { origin: "*" } });
 const userController = require("./controllers/userController");
 const messageController = require("./controllers/messageController");
 const conversationController = require("./controllers/conversationController");
+const UserSchema = require('./models/userSchema');
 const allSockets = [];
+let sizeUsersAvailable = 0;
 
 mongoose.connect(process.env.DB_ADDRESS);
 
@@ -18,10 +20,32 @@ server.listen(process.env.PORT, () => {
     console.log("Server is listening on", parseInt(process.env.PORT));
 });
 
-io.on("connection", socket => {
-    //Penser a conserver le socket pour pouvoir s'en servir plus tard
-    //Remplacer les callbacks par des fonctions dans d'autres fichiers.
+// Pour chaque sockets, envoie la liste des utilisateurs connectés et vérifie chaque 0,5 secondes
+setInterval(async () => {
+    const usersAvailable = [];
+    for (let socketUser of allSockets) {
+        let user = await UserSchema.findOne({username : socketUser.name});
+        
+        if (user) {
+            // Au bout de 2min sans activité, considère l'utilisateur comme déconnecté
+            let lastActivity = new Date(user.last_activity_at);
+            lastActivity.setMinutes(lastActivity.getMinutes() + 2);
 
+            if(lastActivity > new Date()) {
+                usersAvailable.push(user.username)
+            }
+        }
+    }
+    // Si la taille du nombre d'utilisateur est différente, alors envoie l'évènement usersAvailable
+    if(usersAvailable.length !== sizeUsersAvailable) {
+        sizeUsersAvailable = usersAvailable.length;
+        for (let socketUser of allSockets) {
+            socketUser.socket.emit("@usersAvailable", { usernames : usersAvailable });
+        }
+    }
+}, 500);
+
+io.on("connection", socket => {
     socket.on("@authenticate", ({ username, password }, callback) => {
 
         if (!allSockets.find(element => element.socket === socket))

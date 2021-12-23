@@ -1,9 +1,8 @@
 require('dotenv/config');
 const ConversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
+const UserSchema = require('../models/userSchema');
 const jsonwebtoken = require('jsonwebtoken');
-const conversationSchema = require('../models/conversationSchema');
-const mongoose = require('mongoose');
 
 /**
  * Récupère ou crée une conversation one to one
@@ -23,6 +22,8 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
     }
 
     if (userSession.data !== username) {
+        // met à jour "last_activity_at"
+        await UserSchema.findOneAndUpdate({ username: userSession.data }, { last_activity_at: new Date().toString() });
 
         const conversation = await ConversationSchema.findOne({
             participants: {
@@ -136,6 +137,8 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: userSession.data }, { last_activity_at: new Date().toString() });
 
     // Défini le titre de la conversation et les particpants
     let title = "Groupe: ";
@@ -214,6 +217,8 @@ async function getConversations({ token }, callback) {
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: userSession.data }, { last_activity_at: new Date().toString() });
 
     const conversations = await ConversationSchema.find().exec();
     let conversationsUser = [];
@@ -242,7 +247,9 @@ async function getConversations({ token }, callback) {
                     const message = await MessageSchema.findOne({
                         _id: message_id
                     });
-                    conversationToReturn.messages.push(message);
+                    if (!message.deleted) {
+                        conversationToReturn.messages.push(message);
+                    }
                 } catch (error) {
                     console.log({
                         error: error
@@ -295,10 +302,13 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: userSession.data }, { last_activity_at: new Date().toString() });
+
     let conversation = {};
 
     try {
-        conversation = await conversationSchema.findOne({
+        conversation = await ConversationSchema.findOne({
             id: conversation_id
         });
     } catch (error) {
@@ -315,7 +325,7 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
         };
 
         try {
-            await conversationSchema.findOneAndUpdate({
+            await ConversationSchema.findOneAndUpdate({
                 id: conversation_id
             }, {
                 seen: conversation.seen
@@ -346,7 +356,9 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
                 const message = await MessageSchema.findOne({
                     _id: message_id
                 });
-                conversationToReturn.messages.push(message);
+                if (!message.deleted) {
+                    conversationToReturn.messages.push(message);
+                }
             } catch (error) {
                 console.log({
                     error: error
