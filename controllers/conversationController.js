@@ -21,6 +21,13 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
         });
     }
 
+    if (!UserSchema.findOne({username : username})) {
+        return callback({
+            code: "NOT_FOUND_USER",
+            data: {}
+        });
+    }
+
     if (userSession.data !== username) {
         // met à jour "last_activity_at"
         await UserSchema.findOneAndUpdate({ username: userSession.data }, { last_activity_at: new Date().toString() });
@@ -183,7 +190,7 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
         });
     }
 
-    // Pour chaque participants autres que l'utilisateur, envoie un événement conversationCreated
+    // Pour chaque participants de la conversation, envoie un événement conversationCreated
     for (let username of usernames) {
         let socketUserOfConv = allSockets.find(element => element.name === username);
         if (socketUserOfConv) {
@@ -366,14 +373,12 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
             }
         }
 
-        // Envoi un événement conversationSeen à chaque participants de la conversation
+        // Pour chaque participants de la conversation, envoie un événement conversationSeen
         for (let username of conversationToReturn.participants) {
             let socketUserOfConv = allSockets.find(element => element.name === username);
 
             if (socketUserOfConv) {
-                socketUserOfConv.socket.emit("@conversationSeen", {
-                    conversation: conversationToReturn
-                });
+                socketUserOfConv.socket.emit("@conversationSeen", { conversation: conversationToReturn });
             }
         }
 

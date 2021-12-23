@@ -4,7 +4,8 @@
   "description": "Clone of messenger",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "tests": "nodemon tests.js"
   },
   "dependencies": {
     "bcrypt": "^5.0.1",

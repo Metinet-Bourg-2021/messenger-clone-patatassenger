@@ -1,16 +1,17 @@
 require('dotenv/config');
 const express = require("express");
-const app = express();
-const http = require("http");
-const server = http.createServer(app);
-const { Server } = require("socket.io");
-const mongoose = require('mongoose');
-
-const io = new Server(server, { cors: { origin: "*" } });
 const userController = require("./controllers/userController");
 const messageController = require("./controllers/messageController");
 const conversationController = require("./controllers/conversationController");
 const UserSchema = require('./models/userSchema');
+const http = require("http");
+const { Server } = require("socket.io");
+const mongoose = require('mongoose');
+const { response } = require('express');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 const allSockets = [];
 let sizeUsersAvailable = 0;
 

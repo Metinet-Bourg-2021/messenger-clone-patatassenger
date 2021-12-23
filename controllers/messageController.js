@@ -1,6 +1,7 @@
 require('dotenv/config');
 const ConversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
+const UserSchema = require('../models/userSchema');
 const tokenDecoder = require('jsonwebtoken');
 
 async function postMessage({ token, conversation_id, content }, callback, allSockets) {
@@ -11,10 +12,17 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
 
-    let conv = await ConversationSchema.findOne({
-        id: conversation_id
-    });
+    let conv = await ConversationSchema.findOne({ id: conversation_id });
+    if (conv.length === 0) {
+        return callback({
+            code: "NOT_FOUND_CONVERSATION",
+            data: {}
+        });
+    }
+
     let deliveredTo = {};
     conv.participants.forEach(participant => {
         if (participant !== user.data) {
@@ -60,9 +68,9 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
     }
 
     // Pour chaque participants autres que l'utilisateur, envoie un événement messagePosted
-    for (let participant of conv.participants) {
-        if (participant !== user.data) {
-            let socketUserOfConv = allSockets.find(element => element.name === participant.username);
+    for (let username of conv.participants) {
+        if (username !== user.data) {
+            let socketUserOfConv = allSockets.find(element => element.name === username);
             if (socketUserOfConv) {
                 socketUserOfConv.socket.emit("@messagePosted", { conversation_id, message });
             }
@@ -86,8 +94,17 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
 
     let conv = await ConversationSchema.findOne({ id: conversation_id });
+    if (conv.length === 0) {
+        return callback({
+            code: "NOT_FOUND_CONVERSATION",
+            data: {}
+        });
+    }
+
     let deliveredTo = [];
     conv.participants.forEach(participant => {
         if (participant !== user.data) {
@@ -143,9 +160,9 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
     }
     
     // Pour chaque participants autres que l'utilisateur, envoie un événement messagePosted
-    for (let participant of conv.participants) {
-        if (participant !== user.data) {
-            let socketUserOfConv = allSockets.find(element => element.name === participant.username);
+    for (let username of conv.participants) {
+        if (username !== user.data) {
+            let socketUserOfConv = allSockets.find(element => element.name === username);
             if (socketUserOfConv) {
                 socketUserOfConv.socket.emit("@messagePosted", { conversation_id, message });
             }
@@ -168,9 +185,18 @@ async function editMessage({ token, conversation_id, message_id, content }, call
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
+
+    let conv = await ConversationSchema.findOne({ id: conversation_id });
+    if (conv.length === 0) {
+        return callback({
+            code: "NOT_FOUND_CONVERSATION",
+            data: {}
+        });
+    }
 
     // Récupère le message entier par rapport à la conversation
-    let conv = await ConversationSchema.findOne({ id: conversation_id });
     let messageFind = null;
     for (let messageIdConv of conv.messages) {
         let messageBdd = await MessageSchema.findById(messageIdConv);
@@ -180,10 +206,20 @@ async function editMessage({ token, conversation_id, message_id, content }, call
         }
     }
 
+    messageFind.content = content;
+    messageFind.edited = true;
     await MessageSchema.findByIdAndUpdate(messageFind._id, {
         content: content,
         edited: true
     });
+
+    // Pour chaque participants de la conversation, envoie un événement messageEdited
+    for (let username of conv.participants) {
+        let socketUserOfConv = allSockets.find(element => element.name === username);
+        if (socketUserOfConv) {
+            socketUserOfConv.socket.emit("@messageEdited", { conversation_id, message: messageFind });
+        }
+    }
 
     callback({
         code: "SUCCESS",
@@ -191,6 +227,13 @@ async function editMessage({ token, conversation_id, message_id, content }, call
     });
 }
 
+/**
+ * Ajoute une réaction au message et l'enregistre dans la bdd
+ * @param {Object} { token, conversation_id, message_id, reaction } 
+ * @param {Function} callback 
+ * @param {Object} allSockets 
+ * @returns 
+ */
 async function reactMessage({ token, conversation_id, message_id, reaction }, callback, allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
     if (!user || user.exp * 1000 < Date.now()) {
@@ -199,9 +242,18 @@ async function reactMessage({ token, conversation_id, message_id, reaction }, ca
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
+
+    let conv = await ConversationSchema.findOne({ id: conversation_id });
+    if (conv.length === 0) {
+        return callback({
+            code: "NOT_FOUND_CONVERSATION",
+            data: {}
+        });
+    }
 
     // Récupère le message entier par rapport à la conversation
-    let conv = await ConversationSchema.findOne({ id: conversation_id });
     let messageFind = null;
     for (let messageIdConv of conv.messages) {
         let messageBdd = await MessageSchema.findById(messageIdConv);
@@ -217,9 +269,9 @@ async function reactMessage({ token, conversation_id, message_id, reaction }, ca
         reactions: message.reactions
     });
 
-    // Pour chaque participants autres que l'utilisateur, envoie un événement messageReacted
-    for (let participant of conv.participants) {
-        let socketUserOfConv = allSockets.find(element => element.name === participant.username);
+    // Pour chaque participants de la conversation, envoie un événement messageReacted
+    for (let username of conv.participants) {
+        let socketUserOfConv = allSockets.find(element => element.name === username);
         if (socketUserOfConv) {
             socketUserOfConv.socket.emit("@messageReacted", { conversation_id, message });
         }
@@ -231,6 +283,13 @@ async function reactMessage({ token, conversation_id, message_id, reaction }, ca
     });
 }
 
+/**
+ * Passe un message en "deleted: true" dans la bdd
+ * @param {Object} { token, conversation_id, message_id, content } 
+ * @param {Function} callback 
+ * @param {Object} allSockets 
+ * @returns 
+ */
 async function deleteMessage({ token, conversation_id, message_id, content }, callback, allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
 
@@ -240,9 +299,18 @@ async function deleteMessage({ token, conversation_id, message_id, content }, ca
             data: {}
         });
     }
+    // met à jour "last_activity_at"
+    await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
+
+    let conv = await ConversationSchema.findOne({ id: conversation_id });
+    if (conv.length === 0) {
+        return callback({
+            code: "NOT_FOUND_CONVERSATION",
+            data: {}
+        });
+    }
 
     // Récupère le message entier par rapport à la conversation
-    let conv = await ConversationSchema.findOne({ id: conversation_id });
     let messageFind = null;
     for (let messageIdConv of conv.messages) {
         let messageBdd = await MessageSchema.findById(messageIdConv);
@@ -257,11 +325,11 @@ async function deleteMessage({ token, conversation_id, message_id, content }, ca
         deleted: true
     });
 
-    // Pour chaque participants autres que l'utilisateur, envoie un événement messagePosted
-    for (let participant of conv.participants) {
-        let socketUserOfConv = allSockets.find(element => element.name === participant.username);
+    // Pour chaque participants de la conversation, envoie un événement messageDeleted
+    for (let username of conv.participants) {
+        let socketUserOfConv = allSockets.find(element => element.name === username);
         if (socketUserOfConv) {
-            socketUserOfConv.socket.emit("@messageDeleted", { conversation_id, message_id });
+            await socketUserOfConv.socket.emit("@messageDeleted", { conversation_id, message: messageFind });
         }
     }
 

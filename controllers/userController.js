@@ -101,7 +101,7 @@ async function getUsers({ token }, callback) {
                 data.push({ "username": user.username, "picture_url": user.picture_url, "awake": awake });
             });
             
-            callback({
+            return callback({
                 code: "SUCCESS",
                 data: {
                     "users": data
