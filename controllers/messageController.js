@@ -25,9 +25,7 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
 
     let deliveredTo = {};
     conv.participants.forEach(participant => {
-        if (participant !== user.data) {
-            deliveredTo[participant] = new Date().toISOString();
-        }
+        deliveredTo[participant] = new Date().toISOString();
     });
 
     let message = new MessageSchema({
@@ -56,11 +54,14 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
     // Met à jour les messages de la conversation
     conv.messages.push(message._id);
     conv.seen[user.data] = {
-        message_id: message._id.toString(),
+        message_id: message.id,
         time: new Date().toISOString()
     }
     try {
-        await ConversationSchema.findOneAndUpdate({ id: conversation_id }, { messages: conv.messages });
+        await ConversationSchema.findOneAndUpdate(
+            { id: conversation_id }, 
+            { messages: conv.messages, updated_at: new Date().toISOString() }
+        );
     } catch (e) {
         console.log({
             error: e
@@ -105,22 +106,10 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
         });
     }
 
-    let deliveredTo = [];
+    let deliveredTo = {};
     conv.participants.forEach(participant => {
-        if (participant !== user.data) {
-            deliveredTo[participant] = new Date().toISOString();
-        }
+        deliveredTo[participant] = new Date().toISOString();
     });
-
-    // Récupère le message entier par rapport à la conversation
-    let messageFind = null;
-    for (let messageIdConv of conv.messages) {
-        let messageBdd = await MessageSchema.findById(messageIdConv);
-        if (messageBdd.length !== 0 && messageBdd.id === message_id) {
-            messageFind = messageBdd;
-            break;
-        }
-    }
 
     let message = new MessageSchema({
         id: conv.messages.length,
@@ -128,7 +117,7 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
         content: content,
         posted_at: new Date().toISOString(),
         delivered_to: deliveredTo,
-        reply_to: messageFind._id,
+        reply_to: message_id,
         edited: false,
         deleted: false,
         reactions: {}
@@ -148,11 +137,14 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
     // Met à jour les messages de la conversation
     conv.messages.push(message._id);
     conv.seen[user.data] = {
-        message_id: message._id.toString(),
+        message_id: message_id,
         time: new Date().toISOString()
     }
     try {
-        await ConversationSchema.findOneAndUpdate({ id: conversation_id }, { messages: conv.messages });
+        await ConversationSchema.findOneAndUpdate(
+            { id: conversation_id },
+            { messages: conv.messages, updated_at: new Date().toISOString() }
+        );
     } catch (e) {
         console.log({
             error: e
@@ -329,7 +321,7 @@ async function deleteMessage({ token, conversation_id, message_id, content }, ca
     for (let username of conv.participants) {
         let socketUserOfConv = allSockets.find(element => element.name === username);
         if (socketUserOfConv) {
-            await socketUserOfConv.socket.emit("@messageDeleted", { conversation_id, message: messageFind });
+            socketUserOfConv.socket.emit("@messageDeleted", { conversation_id, message_id });
         }
     }
 

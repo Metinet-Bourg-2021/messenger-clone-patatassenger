@@ -26,7 +26,7 @@ const messageSchema = mongoose.Schema({
     },
     reply_to:
     {
-        type: mongoose.Types.ObjectId,
+        type: Number,
         default: null
     },
     edited:

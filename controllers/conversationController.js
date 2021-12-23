@@ -84,7 +84,7 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
                 participants: [username, userSession.data],
                 messages: [],
                 theme: "BLUE",
-                updated_at: new Date(),
+                updated_at: new Date().toISOString(),
                 seen: {},
                 typing: {}
             });
@@ -168,7 +168,7 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
         participants: participants,
         messages: [],
         theme: "BLUE",
-        updated_at: new Date(),
+        updated_at: new Date().toISOString(),
         seen: {},
         typing: {}
     });

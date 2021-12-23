@@ -13,6 +13,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const allSockets = [];
+let usersAvailable = [];
 let sizeUsersAvailable = 0;
 
 mongoose.connect(process.env.DB_ADDRESS);
@@ -23,7 +24,7 @@ server.listen(process.env.PORT, () => {
 
 // Pour chaque sockets, envoie la liste des utilisateurs connectés et vérifie chaque 0,5 secondes
 setInterval(async () => {
-    const usersAvailable = [];
+    usersAvailable = [];
     for (let socketUser of allSockets) {
         let user = await UserSchema.findOne({username : socketUser.name});
         
@@ -49,8 +50,17 @@ setInterval(async () => {
 io.on("connection", socket => {
     socket.on("@authenticate", ({ username, password }, callback) => {
 
-        if (!allSockets.find(element => element.socket === socket))
+        if (!allSockets.find(element => element.socket === socket)) {
             allSockets.push({ name: username, socket: socket });
+        }
+        
+        // Envoie l'évènement usersAvailable au cas où dans les 0,5 secondes 
+        // la variable usersAvailable n'aurait pas changé de length
+        if (!usersAvailable.find(value => value === username)) {
+            usersAvailable.push(username);
+            socket.emit("@usersAvailable", { usernames : usersAvailable });
+        }
+
         userController.authenticate({ username, password }, callback, allSockets);
     });
     socket.on("@getUsers", ({ token }, callback) => {
@@ -89,8 +99,17 @@ io.on("connection", socket => {
     socket.on("disconnect", async(reason) => {
         let index = allSockets.findIndex(element => element.socket === socket);
 
+
         if (index !== -1) {
-            //await userController.disconnect(allSockets[index].name);
+
+            // Envoie l'évènement usersAvailable au cas où dans les 0,5 secondes 
+            // la variable usersAvailable n'aurait pas changé de length
+            let indexUser = usersAvailable.findIndex(value => value === allSockets[index].name);
+            if (indexUser !== -1) {
+                usersAvailable.splice(indexUser, 1);
+                socket.emit("@usersAvailable", { usernames : usersAvailable });
+            }
+            
             console.log('Déconnexion : ', allSockets[index].name, reason);
             allSockets.splice(index, 1);
         }

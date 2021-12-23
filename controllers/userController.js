@@ -113,27 +113,7 @@ async function getUsers({ token }, callback) {
     }
 }
 
-//TODO a enlevé peut être
-/** 
- * Envoie "awake : false" à la BDD pour l'utilisateur soit déconnecter
- * @param {String} username 
- * @returns 
- */
-async function disconnect(username) {
-
-    if (username) {
-
-        try {
-            // met à jour "awake" pour dire que l'utilisateur est déconnecté
-            await UserSchema.findOneAndUpdate({ username: username }, { awake: false });
-        } catch (e) {
-            return console.log("Erreur : " + e);
-        }
-    }
-}
-
 module.exports = {
     authenticate: authenticate,
-    getUsers: getUsers,
-    disconnect: disconnect
+    getUsers: getUsers
 };
