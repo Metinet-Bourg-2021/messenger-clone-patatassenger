@@ -137,6 +137,7 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
  */
 async function createManyToManyConversation({ token, usernames }, callback, allSockets) {
     let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
+    const noDuplicateUsernames = new Set(usernames);
 
     if (!userSession || userSession.exp * 1000 < Date.now()) {
         return callback({
@@ -146,6 +147,21 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
     }
     // met à jour "last_activity_at"
     await UserSchema.findOneAndUpdate({ username: userSession.data }, { last_activity_at: new Date().toString() });
+
+    for(let username of usernames) {
+        if (!UserSchema.findOne({username : username})) {
+            return callback({
+                code: "NOT_FOUND_USER",
+                data: {}
+            });
+        }
+        if (username === userSession.data || noDuplicateUsernames.size !== usernames.length) {
+            return callback({
+                code: "NOT_VALID_USERNAMES",
+                data: {}
+            });
+        }
+    }
 
     // Défini le titre de la conversation et les particpants
     let title = "Groupe: ";
@@ -326,22 +342,6 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
 
     // Si une conversation a été trouvé
     if (conversation.length !== 0) {
-        conversation.seen[userSession.data] = {
-            message_id: message_id,
-            time: new Date().toISOString()
-        };
-
-        try {
-            await ConversationSchema.findOneAndUpdate({
-                id: conversation_id
-            }, {
-                seen: conversation.seen
-            });
-        } catch (error) {
-            console.log({
-                error: error
-            });
-        }
 
         // On recrée un objet conversation pour ne pas avoir les contraintes de l'objet mongoose
         let conversationToReturn = {
@@ -357,13 +357,19 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
             typing: conversation.typing
         };
 
+        // Modification de seen dans la conversation
+        conversationToReturn.seen[userSession.data] = {
+            message_id: message_id,
+            time: new Date().toISOString()
+        };
+
         // On push les objects message de la bdd dans le tableau messages de conversationToReturn
-        for (let message_id of conversation.messages) {
+        for (let messageId of conversation.messages) {
             try {
                 const message = await MessageSchema.findOne({
-                    _id: message_id
+                    _id: messageId
                 });
-                if (!message.deleted) {
+                if (message && !message.deleted) {
                     conversationToReturn.messages.push(message);
                 }
             } catch (error) {
@@ -371,6 +377,25 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
                     error: error
                 });
             }
+        }
+
+        if(!conversationToReturn.messages.find(message => message.id === message_id)) {
+            return callback({
+                code: "NOT_FOUND_MESSAGE",
+                data: {}
+            });
+        }
+
+        try {
+            await ConversationSchema.findOneAndUpdate({
+                id: conversation_id
+            }, {
+                seen: conversationToReturn.seen
+            });
+        } catch (error) {
+            console.log({
+                error: error
+            });
         }
 
         // Pour chaque participants de la conversation, envoie un événement conversationSeen

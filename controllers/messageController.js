@@ -6,6 +6,7 @@ const tokenDecoder = require('jsonwebtoken');
 
 async function postMessage({ token, conversation_id, content }, callback, allSockets) {
     let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+
     if (!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
@@ -14,6 +15,13 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
     }
     // met à jour "last_activity_at"
     await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
+
+    if (content.replace(/\s/g,'') === '') {
+        return callback({
+            code: "NOT_VALID_CONTENT",
+            data: {}
+        });
+    }
 
     let conv = await ConversationSchema.findOne({ id: conversation_id });
     if (conv.length === 0) {
@@ -60,7 +68,7 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
     try {
         await ConversationSchema.findOneAndUpdate(
             { id: conversation_id }, 
-            { messages: conv.messages, updated_at: new Date().toISOString() }
+            { messages: conv.messages, seen: conv.seen, updated_at: new Date().toISOString() }
         );
     } catch (e) {
         console.log({
@@ -98,10 +106,34 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
     // met à jour "last_activity_at"
     await UserSchema.findOneAndUpdate({ username: user.data }, { last_activity_at: new Date().toString() });
 
+    if (content.replace(/\s/g,'') === '') {
+        return callback({
+            code: "NOT_VALID_CONTENT",
+            data: {}
+        });
+    }
+
     let conv = await ConversationSchema.findOne({ id: conversation_id });
     if (conv.length === 0) {
         return callback({
             code: "NOT_FOUND_CONVERSATION",
+            data: {}
+        });
+    }
+
+    // Vérification de message_id
+    let messagesConv = [];
+    for(let messageId of conv.messages) {
+        const message = await MessageSchema.findOne({
+            _id: messageId
+        });
+        if (message && !message.deleted) {
+            messagesConv.push(message);
+        }
+    }
+    if(!messagesConv.find(message => message.id === message_id)) {
+        return callback({
+            code: "NOT_FOUND_MESSAGE",
             data: {}
         });
     }
@@ -143,7 +175,7 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
     try {
         await ConversationSchema.findOneAndUpdate(
             { id: conversation_id },
-            { messages: conv.messages, updated_at: new Date().toISOString() }
+            { messages: conv.messages, seen: conv.seen, updated_at: new Date().toISOString() }
         );
     } catch (e) {
         console.log({
@@ -188,15 +220,24 @@ async function editMessage({ token, conversation_id, message_id, content }, call
         });
     }
 
-    // Récupère le message entier par rapport à la conversation
-    let messageFind = null;
-    for (let messageIdConv of conv.messages) {
-        let messageBdd = await MessageSchema.findById(messageIdConv);
-        if (messageBdd.length !== 0 && messageBdd.id === message_id) {
-            messageFind = messageBdd;
-            break;
+    // Vérification de message_id
+    let messagesConv = [];
+    for(let messageId of conv.messages) {
+        const message = await MessageSchema.findOne({
+            _id: messageId
+        });
+        if (message && !message.deleted) {
+            messagesConv.push(message);
         }
     }
+    if(!messagesConv.find(message => message.id === message_id)) {
+        return callback({
+            code: "NOT_FOUND_MESSAGE",
+            data: {}
+        });
+    }
+
+    let messageFind = messagesConv.find(message => message.id === message_id);
 
     messageFind.content = content;
     messageFind.edited = true;
@@ -245,15 +286,24 @@ async function reactMessage({ token, conversation_id, message_id, reaction }, ca
         });
     }
 
-    // Récupère le message entier par rapport à la conversation
-    let messageFind = null;
-    for (let messageIdConv of conv.messages) {
-        let messageBdd = await MessageSchema.findById(messageIdConv);
-        if (messageBdd.length !== 0 && messageBdd.id === message_id) {
-            messageFind = messageBdd;
-            break;
+    // Vérification de message_id
+    let messagesConv = [];
+    for(let messageId of conv.messages) {
+        const message = await MessageSchema.findOne({
+            _id: messageId
+        });
+        if (message && !message.deleted) {
+            messagesConv.push(message);
         }
     }
+    if(!messagesConv.find(message => message.id === message_id)) {
+        return callback({
+            code: "NOT_FOUND_MESSAGE",
+            data: {}
+        });
+    }
+
+    let messageFind = messagesConv.find(message => message.id === message_id);
 
     let message = await MessageSchema.findById(messageFind._id);
     message.reactions[user.data] = reaction;
@@ -302,15 +352,24 @@ async function deleteMessage({ token, conversation_id, message_id, content }, ca
         });
     }
 
-    // Récupère le message entier par rapport à la conversation
-    let messageFind = null;
-    for (let messageIdConv of conv.messages) {
-        let messageBdd = await MessageSchema.findById(messageIdConv);
-        if (messageBdd.length !== 0 && messageBdd.id === message_id) {
-            messageFind = messageBdd;
-            break;
+    // Vérification de message_id
+    let messagesConv = [];
+    for(let messageId of conv.messages) {
+        const message = await MessageSchema.findOne({
+            _id: messageId
+        });
+        if (message && !message.deleted) {
+            messagesConv.push(message);
         }
     }
+    if(!messagesConv.find(message => message.id === message_id)) {
+        return callback({
+            code: "NOT_FOUND_MESSAGE",
+            data: {}
+        });
+    }
+
+    let messageFind = messagesConv.find(message => message.id === message_id);
 
     messageFind.deleted = true;
     await MessageSchema.findByIdAndUpdate(messageFind._id, {
