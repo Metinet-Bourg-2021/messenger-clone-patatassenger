@@ -138,6 +138,7 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
         });
     }
 
+    let messageFind = messagesConv.find(message => message.id === message_id);
     let deliveredTo = {};
     conv.participants.forEach(participant => {
         deliveredTo[participant] = new Date().toISOString();
@@ -149,7 +150,7 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
         content: content,
         posted_at: new Date().toISOString(),
         delivered_to: deliveredTo,
-        reply_to: message_id,
+        reply_to: messageFind,
         edited: false,
         deleted: false,
         reactions: {}

@@ -26,7 +26,7 @@ const messageSchema = mongoose.Schema({
     },
     reply_to:
     {
-        type: Number,
+        type: Object,
         default: null
     },
     edited:
