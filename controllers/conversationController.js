@@ -12,7 +12,7 @@ const jsonwebtoken = require('jsonwebtoken');
  * @returns callback
  */
 async function getOrCreateOneToOneConversation({ token, username }, callback, allSockets) {
-    let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
+    let userSession = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
     if (!userSession || userSession.exp * 1000 < Date.now()) {
         return callback({
@@ -136,7 +136,7 @@ async function getOrCreateOneToOneConversation({ token, username }, callback, al
  * @returns callback
  */
 async function createManyToManyConversation({ token, usernames }, callback, allSockets) {
-    let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
+    let userSession = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
     const noDuplicateUsernames = new Set(usernames);
 
     if (!userSession || userSession.exp * 1000 < Date.now()) {
@@ -232,7 +232,7 @@ async function createManyToManyConversation({ token, usernames }, callback, allS
  * @returns 
  */
 async function getConversations({ token }, callback) {
-    let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
+    let userSession = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
     if (!userSession || userSession.exp * 1000 < Date.now()) {
         return callback({
@@ -314,10 +314,10 @@ async function getConversations({ token }, callback) {
  * @param {Object} { token, conversation_id, message_id } 
  * @param {Function} callback 
  * @param {Object} allSockets 
- * @returns 
+ * @returns
  */
 async function seeConversation({ token, conversation_id, message_id }, callback, allSockets) {
-    let userSession = jsonwebtoken.verify(token, process.env.SECRET_KEY);
+    let userSession = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
     if (!userSession || userSession.exp * 1000 < Date.now()) {
         return callback({

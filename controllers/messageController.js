@@ -5,7 +5,7 @@ const UserSchema = require('../models/userSchema');
 const tokenDecoder = require('jsonwebtoken');
 
 async function postMessage({ token, conversation_id, content }, callback, allSockets) {
-    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    let user = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
     if (!user || user.exp * 1000 < Date.now()) {
         return callback({
@@ -95,7 +95,7 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
 }
 
 async function replyMessage({ token, conversation_id, message_id, content }, callback, allSockets) {
-    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    let user = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
     if (!user || user.exp * 1000 < Date.now()) {
         return callback({
@@ -203,7 +203,8 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
 }
 
 async function editMessage({ token, conversation_id, message_id, content }, callback, allSockets) {
-    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    let user = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
+
     if (!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
@@ -269,7 +270,7 @@ async function editMessage({ token, conversation_id, message_id, content }, call
  * @returns 
  */
 async function reactMessage({ token, conversation_id, message_id, reaction }, callback, allSockets) {
-    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    let user = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
     if (!user || user.exp * 1000 < Date.now()) {
         return callback({
             code: "NOT_AUTHENTICATED",
@@ -334,7 +335,7 @@ async function reactMessage({ token, conversation_id, message_id, reaction }, ca
  * @returns 
  */
 async function deleteMessage({ token, conversation_id, message_id, content }, callback, allSockets) {
-    let user = tokenDecoder.verify(token, process.env.SECRET_KEY);
+    let user = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
     if (!user || user.exp * 1000 < Date.now()) {
         return callback({

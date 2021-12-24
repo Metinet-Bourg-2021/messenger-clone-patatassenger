@@ -51,7 +51,7 @@ async function authenticate({ username, password }, callback, allSockets) {
             console.log({savedUser});
         }
         catch(error) {
-            console.log({ error: error });
+            return console.log({ error: error });
         }
     }
     let token = jsonwebtoken.sign({ data: userFind.username }, process.env.SECRET_KEY, { expiresIn: "1h" });
@@ -74,43 +74,35 @@ async function authenticate({ username, password }, callback, allSockets) {
  * @returns 
  */
 async function getUsers({ token }, callback) {
+    let decoded = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
 
-    if (token) {
-
-        try {
-            let decoded = jsonwebtoken.verify(token, process.env.SECRET_KEY);
-
-            if (!decoded || decoded.exp * 1000 < Date.now()) {
-                return callback({
-                    code: "NOT_AUTHENTICATED",
-                    data: {}
-                });
-            }
-            const usersBDD = await UserSchema.find().exec();
-            let data = [];
-            usersBDD.forEach(user => {
-                // Au bout de 2min sans activité, considère l'utilisateur comme déconnecté
-                let awake = false;
-                let lastActivity = new Date(user.last_activity_at);
-                lastActivity.setMinutes(lastActivity.getMinutes() + 2);
-                
-                if(lastActivity > new Date()) {
-                    awake = true;
-                }
-                
-                data.push({ "username": user.username, "picture_url": user.picture_url, "awake": awake });
-            });
-            
-            return callback({
-                code: "SUCCESS",
-                data: {
-                    "users": data
-                }
-            });
-        } catch (e) {
-            return console.log("Erreur : " + e);
-        }
+    if (!decoded || decoded.exp * 1000 < Date.now()) {
+        return callback({
+            code: "NOT_AUTHENTICATED",
+            data: {}
+        });
     }
+    const usersBDD = await UserSchema.find().exec();
+    let data = [];
+    usersBDD.forEach(user => {
+        // Au bout de 2min sans activité, considère l'utilisateur comme déconnecté
+        let awake = false;
+        let lastActivity = new Date(user.last_activity_at);
+        lastActivity.setMinutes(lastActivity.getMinutes() + 2);
+        
+        if(lastActivity > new Date()) {
+            awake = true;
+        }
+        
+        data.push({ "username": user.username, "picture_url": user.picture_url, "awake": awake });
+    });
+    
+    return callback({
+        code: "SUCCESS",
+        data: {
+            "users": data
+        }
+    });
 }
 
 module.exports = {
