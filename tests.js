@@ -62,6 +62,7 @@ app.get("/", (req, res) => {
     res.send("Test controlleurs");
 });
 
+// N'est pas utilisée, premiers tests à réutiliser en commentaires
 app.post("/", async (req, res) => {
     let responseReturn = {};
 
@@ -72,31 +73,24 @@ app.post("/", async (req, res) => {
         "password" : "patata"
     }
     */
-    let authenticate = userController.authenticate({ username : req.body.username, password : req.body.password }, callbackPost, allSockets);
+    /* let authenticate = userController.authenticate({ username : req.body.username, password : req.body.password }, callbackPost, allSockets);
     await authenticate.then(response => {
         responseReturn.authenticate = response;
-    })
+    }) */
 
     // test messageController
     /* Exemple de body à envoyer
     {
-        "message": {
-            "id":42,
-            "from":"Patata",
-            "content": "Aimes tu les patates ?",
-            "posted_at": "2021-12-24T00:42:00",
-            "delivered_to": ["Camille": "2021-12-24T00:42:00", ...],
-            "reply_to": null,
-            "edited": false,
-            "deleted": false,
-            "reactions": {}
-        }
+        "username" : "Patata",
+        "password" : "patata",
+        "conversation_id" : 1,
+        "content" : "J'aime les patates"
     }
     */
-    let postMessage = messageController.postMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, content:req.body.content }, callbackPost, allSockets)
+    /* let postMessage = messageController.postMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, content:req.body.content }, callbackPost, allSockets)
     await postMessage.then(response=>{
         responseReturn.postMessage=response;
-    });
+    }); */
 
     /* Exemple de body à envoyer
     {
@@ -113,40 +107,40 @@ app.post("/", async (req, res) => {
         }
     }
     */
-    let replyMessage = messageController.replyMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, content:req.body.content }, callbackPost, allSockets)
+    /* let replyMessage = messageController.replyMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, content:req.body.content }, callbackPost, allSockets)
     await replyMessage.then(response=>{
         responseReturn.replyMessage=response;
-    });
+    }); */
 
     /* Exemple de body à envoyer
     {
 
     }
     */
-    let editMessage = messageController.editMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, content:req.body.content }, callbackPost, allSockets)
+    /* let editMessage = messageController.editMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, content:req.body.content }, callbackPost, allSockets)
     await editMessage.then(response=>{
         responseReturn.editMessage=response;
-    });
+    }); */
     
     /* Exemple de body à envoyer
     {
         
     }
     */
-    let reactMessage = messageController.reactMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, reaction:req.body.reaction }, callbackPost, allSockets)
+    /* let reactMessage = messageController.reactMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, reaction:req.body.reaction }, callbackPost, allSockets)
     await reactMessage.then(response=>{
         responseReturn.reactMessage=response;
-    });
+    }); */
 
     /* Exemple de body à envoyer
     {
 
     }
     */
-    let deleteMessage = messageController.deleteMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, content:req.body.content }, callbackPost, allSockets)
+    /* let deleteMessage = messageController.deleteMessage({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id, content:req.body.content }, callbackPost, allSockets)
     await deleteMessage.then(response=>{
         responseReturn.deleteMessage=response;
-    });
+    }); */
 
 
     // test conversationController
@@ -165,10 +159,10 @@ app.post("/", async (req, res) => {
         }
     }
     */
-    let getOrCreateOneToOneConversation = conversationController.getOrCreateOneToOneConversation({ token : responseReturn.authenticate.data.token, username:req.body.username }, callbackPost, allSockets)
+    /* let getOrCreateOneToOneConversation = conversationController.getOrCreateOneToOneConversation({ token : responseReturn.authenticate.data.token, username:req.body.username }, callbackPost, allSockets)
     await getOrCreateOneToOneConversation.then(response=>{
         responseReturn.getOrCreateOneToOneConversation=response;
-    });
+    }); */
     
     /* Exemple de body à envoyer
     {
@@ -185,20 +179,20 @@ app.post("/", async (req, res) => {
         }
     }
     */
-    let createManyToManyConversation = conversationController.createManyToManyConversation({ token : responseReturn.authenticate.data.token, usernames:req.body.usernames }, callbackPost, allSockets)
+    /* let createManyToManyConversation = conversationController.createManyToManyConversation({ token : responseReturn.authenticate.data.token, usernames:req.body.usernames }, callbackPost, allSockets)
     await createManyToManyConversation.then(response=>{
         responseReturn.createManyToManyConversation=response;
-    });
+    }); */
     
     /* Exemple de body à envoyer
     {
         
     }
     */
-    let seeConversation = conversationController.seeConversation({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id }, callbackPost, allSockets)
+    /* let seeConversation = conversationController.seeConversation({ token : responseReturn.authenticate.data.token, conversation_id:req.body.conversation_id, message_id:req.body.message_id }, callbackPost, allSockets)
     await seeConversation.then(response=>{
         responseReturn.seeConversation=response;
-    });
+    }); */
 
     // reponse a l'ecran
     res.json({responseReturn});
@@ -229,7 +223,7 @@ app.post("/getUsers", async (req, res) => {
 
     let authenticate = userController.authenticate({ username : req.body.username, password : req.body.password }, callbackPost, allSockets);
     await authenticate.then(response => {
-        token = response.data.token;
+        token = response ? response.data.token : null;
     })
     
     // Pas de body à mettre autre que pour authenticate
@@ -249,7 +243,7 @@ app.post("/getConversations", async (req, res) => {
 
     let authenticate = userController.authenticate({ username : req.body.username, password : req.body.password }, callbackPost, allSockets);
     await authenticate.then(response => {
-        token = response.data.token;
+        token = response ? response.data.token : null;
     })
 
     // Pas de body à mettre autre que pour authenticate
