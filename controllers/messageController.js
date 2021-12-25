@@ -2,7 +2,7 @@ require('dotenv/config');
 const ConversationSchema = require('../models/conversationSchema');
 const MessageSchema = require('../models/messageSchema');
 const UserSchema = require('../models/userSchema');
-const tokenDecoder = require('jsonwebtoken');
+const jsonwebtoken = require('jsonwebtoken');
 
 async function postMessage({ token, conversation_id, content }, callback, allSockets) {
     let user = token ? jsonwebtoken.verify(token, process.env.SECRET_KEY) : null;
@@ -33,7 +33,9 @@ async function postMessage({ token, conversation_id, content }, callback, allSoc
 
     let deliveredTo = {};
     conv.participants.forEach(participant => {
-        deliveredTo[participant] = new Date().toISOString();
+        if (participant !== user.data) {
+            deliveredTo[participant] = new Date().toISOString();
+        }
     });
 
     let message = new MessageSchema({
@@ -141,7 +143,9 @@ async function replyMessage({ token, conversation_id, message_id, content }, cal
     let messageFind = messagesConv.find(message => message.id === message_id);
     let deliveredTo = {};
     conv.participants.forEach(participant => {
-        deliveredTo[participant] = new Date().toISOString();
+        if (participant !== user.data) {
+            deliveredTo[participant] = new Date().toISOString();
+        }
     });
 
     let message = new MessageSchema({

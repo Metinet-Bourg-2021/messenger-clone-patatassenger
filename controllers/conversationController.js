@@ -270,7 +270,7 @@ async function getConversations({ token }, callback) {
                     const message = await MessageSchema.findOne({
                         _id: message_id
                     });
-                    if (!message.deleted) {
+                    if (message && !message.deleted) {
                         conversationToReturn.messages.push(message);
                     }
                 } catch (error) {
@@ -358,11 +358,13 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
         };
 
         // Modification de seen dans la conversation
-        conversationToReturn.seen[userSession.data] = {
-            message_id: message_id,
-            time: new Date().toISOString()
-        };
-
+        if(conversationToReturn.seen[userSession.data].message_id !== message_id) {
+            conversationToReturn.seen[userSession.data] = {
+                message_id: message_id,
+                time: new Date().toISOString()
+            };
+        }
+        
         // On push les objects message de la bdd dans le tableau messages de conversationToReturn
         for (let messageId of conversation.messages) {
             try {
@@ -386,16 +388,18 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
             });
         }
 
-        try {
-            await ConversationSchema.findOneAndUpdate({
-                id: conversation_id
-            }, {
-                seen: conversationToReturn.seen
-            });
-        } catch (error) {
-            console.log({
-                error: error
-            });
+        if(conversationToReturn.seen[userSession.data].message_id !== message_id) {
+            try {
+                await ConversationSchema.findOneAndUpdate({
+                    id: conversation_id
+                }, {
+                    seen: conversationToReturn.seen
+                });
+            } catch (error) {
+                console.log({
+                    error: error
+                });
+            }
         }
 
         // Pour chaque participants de la conversation, envoie un événement conversationSeen
@@ -403,7 +407,7 @@ async function seeConversation({ token, conversation_id, message_id }, callback,
             let socketUserOfConv = allSockets.find(element => element.name === username);
 
             if (socketUserOfConv) {
-                socketUserOfConv.socket.emit("@conversationSeen", { conversation: conversationToReturn });
+                await socketUserOfConv.socket.emit("@conversationSeen", { conversation: conversationToReturn });
             }
         }
 
